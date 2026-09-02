@@ -12,7 +12,16 @@
 
 import { sealedPiecesOf } from "../core/board";
 import { legalMoves, legalPlacements, movablePieceIds } from "../core/rules";
-import type { GameState, Move, Outcome, PieceId, Player, Pos } from "../core/types";
+import type {
+  GameEvent,
+  GameState,
+  Move,
+  MoveRecord,
+  Outcome,
+  PieceId,
+  Player,
+  Pos,
+} from "../core/types";
 import type {
   GameClient,
   GameEventListener,
@@ -22,6 +31,17 @@ import type {
   Unsubscribe,
 } from "./GameClient";
 
+/** 確定前の1手。ply と outcome はあとから決まる。 */
+interface DraftRecord {
+  player: Player;
+  pieceId: PieceId;
+  from: Pos | null;
+  to: Pos;
+  released: boolean;
+  sealed: PieceId[];
+  selfSealed: boolean;
+}
+
 export class GameSession {
   #client: GameClient;
   #unsubscribeEvent: Unsubscribe;
@@ -30,14 +50,69 @@ export class GameSession {
   #stateListeners = new Set<StateListener>();
   #pending: Promise<unknown> | null = null;
 
+  /** 棋譜。イベントから組み立てる。 */
+  #record: MoveRecord[] = [];
+  /** 組み立て中の1手。moved で始まり turnChanged で確定する。 */
+  #draft: DraftRecord | null = null;
+
   constructor(client: GameClient) {
     this.#client = client;
+
     this.#unsubscribeEvent = client.onEvent((event) => {
+      // 先に棋譜を進めてから配る。リスナが record を読んでも辻褄が合う
+      this.#recordEvent(event);
       for (const listener of [...this.#eventListeners]) listener(event);
     });
+
     this.#unsubscribeState = client.onStateChange((state) => {
+      // 待ったで戻ったぶんを落とす。手数がそのまま棋譜の長さになる
+      if (this.#record.length > state.ply) this.#record.length = state.ply;
       for (const listener of [...this.#stateListeners]) listener(state);
     });
+  }
+
+  /* ---------- 棋譜 ---------- */
+
+  /** 指し始めからの手。待ったで戻せば、戻したぶんは消える。 */
+  get record(): readonly MoveRecord[] {
+    return this.#record;
+  }
+
+  #recordEvent(event: GameEvent): void {
+    switch (event.type) {
+      case "moved":
+        this.#draft = {
+          player: event.owner,
+          pieceId: event.pieceId,
+          from: event.from,
+          to: event.to,
+          released: event.released,
+          sealed: [],
+          selfSealed: false,
+        };
+        break;
+
+      case "captured":
+        if (this.#draft === null) break;
+        // 動かした駒自身が挟まれた場合は、封じた枚数に数えない
+        if (event.pieceId === this.#draft.pieceId) this.#draft.selfSealed = true;
+        else this.#draft.sealed.push(event.pieceId);
+        break;
+
+      case "turnChanged":
+        if (this.#draft === null) break;
+        this.#record.push({ ...this.#draft, ply: event.ply, outcome: null });
+        this.#draft = null;
+        break;
+
+      case "gameEnded": {
+        const last = this.#record.at(-1);
+        if (last !== undefined) {
+          this.#record[this.#record.length - 1] = { ...last, outcome: event.outcome };
+        }
+        break;
+      }
+    }
   }
 
   /* ---------- 局面の読み出し ---------- */

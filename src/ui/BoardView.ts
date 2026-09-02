@@ -9,6 +9,7 @@
  * フレームは一切計算しない（設計ルール6）。
  */
 
+import { SIDE_NAME, cellName, columnLabel } from "../core/notation";
 import type { BoardConfig, GameState, Outcome, Piece, PieceId, Pos } from "../core/types";
 import "./board.css";
 
@@ -44,8 +45,6 @@ export interface BoardEffects {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-const columnLabel = (x: number): string => String.fromCharCode(65 + x);
-const cellName = (pos: Pos): string => `${columnLabel(pos.x)}${pos.y + 1}`;
 const cellKey = (pos: Pos): string => `${pos.x},${pos.y}`;
 
 export type CellListener = (pos: Pos) => void;
@@ -210,8 +209,7 @@ export class BoardView {
   }
 
   #pieceLabel(piece: Piece): string {
-    const side = piece.owner === "A" ? "螺鈿" : "黒漆";
-    return `${cellName(piece.pos)} ${side}${piece.sealed ? " 封じ" : ""}`;
+    return `${cellName(piece.pos)} ${SIDE_NAME[piece.owner]}${piece.sealed ? " 封じ" : ""}`;
   }
 
   #translate(pos: Pos): string {
@@ -357,7 +355,7 @@ export class BoardView {
       title.textContent = "引き分け";
       reason.textContent = "同一局面が3回";
     } else {
-      title.textContent = outcome.winner === "A" ? "螺鈿の勝ち" : "黒漆の勝ち";
+      title.textContent = `${SIDE_NAME[outcome.winner]}の勝ち`;
       reason.textContent = VERDICT_REASON[outcome.reason];
     }
 

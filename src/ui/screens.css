@@ -65,6 +65,16 @@
   background: rgba(206, 74, 46, 0.1);
 }
 
+/* 入り切りのボタン。切ってあることを薄さで示す */
+.btn-toggle {
+  padding: 6px 13px;
+  font-size: 12px;
+}
+
+.btn-toggle[aria-pressed="false"] {
+  opacity: 0.42;
+}
+
 .btn-icon {
   font-family: var(--f-num);
   font-size: 12px;

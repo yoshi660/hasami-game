@@ -15,6 +15,7 @@ import type { BoardConfig } from "../core/types";
 import { GameView } from "./GameView";
 import { RulesSheet } from "./RulesSheet";
 import { SettingsScreen } from "./SettingsScreen";
+import { Sound } from "./Sound";
 import { StartScreen } from "./StartScreen";
 import "./screens.css";
 
@@ -27,8 +28,12 @@ export class App {
   readonly el: HTMLElement;
 
   #head: HTMLElement;
+  #mark: HTMLElement;
+  #soundButton: HTMLButtonElement;
   #stage: HTMLElement;
   #config: BoardConfig = DEFAULT_CONFIG;
+  /** 対局をまたいで持ち回る。設定はブラウザに残る。 */
+  #sound = new Sound();
 
   #screen: Screen | null = null;
   #overlay: Screen | null = null;
@@ -39,10 +44,24 @@ export class App {
     this.el = document.createElement("div");
     this.el.className = "app";
 
-    // スタート画面には大きな題字があるので、そこでは出さない
     this.#head = document.createElement("header");
     this.#head.className = "app-head";
-    this.#head.innerHTML = '<span class="app-head-mark">挟</span><span class="app-head-sub">in a pinch</span>';
+
+    // 題字はスタート画面には大きなものがあるので、そこでは出さない
+    this.#mark = document.createElement("div");
+    this.#mark.className = "app-head-mark";
+    this.#mark.innerHTML = '<span class="app-head-glyph">挟</span><span class="app-head-sub">in a pinch</span>';
+
+    this.#soundButton = document.createElement("button");
+    this.#soundButton.type = "button";
+    this.#soundButton.className = "btn btn-toggle app-head-sound";
+    this.#soundButton.addEventListener("click", () => {
+      this.#sound.setEnabled(!this.#sound.enabled);
+      this.#syncSound();
+    });
+    this.#syncSound();
+
+    this.#head.append(this.#mark, this.#soundButton);
 
     this.#stage = document.createElement("main");
     this.#stage.className = "app-stage";
@@ -51,13 +70,19 @@ export class App {
     this.#showStart();
   }
 
+  #syncSound(): void {
+    const on = this.#sound.enabled;
+    this.#soundButton.textContent = on ? "音 ON" : "音 OFF";
+    this.#soundButton.setAttribute("aria-pressed", String(on));
+  }
+
   /* ---------------- 画面 ---------------- */
 
-  #swap(screen: Screen, showHead: boolean): void {
+  #swap(screen: Screen, showMark: boolean): void {
     this.#closeOverlay();
     this.#screen?.destroy();
     this.#screen = screen;
-    this.#head.hidden = !showHead;
+    this.#mark.hidden = !showMark;
     this.#stage.append(screen.el);
   }
 
@@ -97,6 +122,7 @@ export class App {
 
     this.#swap(
       new GameView(session, {
+        sound: this.#sound,
         onRematch: () => this.#startGame(config),
         onSettings: () => this.#openSettings(),
       }),

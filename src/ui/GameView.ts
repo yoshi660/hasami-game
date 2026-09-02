@@ -17,6 +17,8 @@ import type { Unsubscribe } from "../app/GameClient";
 import type { GameEvent, GameState, Move, PieceId, Pos } from "../core/types";
 import { BoardView } from "./BoardView";
 import type { BoardDecor, FlankLine } from "./BoardView";
+import { RecordView } from "./RecordView";
+import type { Sound } from "./Sound";
 import { StatusView } from "./StatusView";
 import "./screens.css";
 
@@ -38,6 +40,8 @@ const noEffects = (): PendingEffects => ({
 });
 
 export interface GameViewOptions {
+  /** 対局をまたいで持ち回る音。 */
+  readonly sound: Sound;
   /** 同じ設定で始め直す。 */
   readonly onRematch: () => void;
   /** 対局設定へ戻る。 */
@@ -50,6 +54,8 @@ export class GameView {
   #session: GameSession;
   #board: BoardView;
   #status: StatusView;
+  #record: RecordView;
+  #sound: Sound;
   #undoButton: HTMLButtonElement;
   #unsubscribes: Unsubscribe[] = [];
 
@@ -64,10 +70,12 @@ export class GameView {
 
   constructor(session: GameSession, options: GameViewOptions) {
     this.#session = session;
+    this.#sound = options.sound;
 
     const config = session.state.config;
     this.#board = new BoardView(config);
     this.#status = new StatusView(config);
+    this.#record = new RecordView();
 
     const controls = document.createElement("div");
     controls.className = "controls";
@@ -84,7 +92,7 @@ export class GameView {
 
     this.el = document.createElement("div");
     this.el.className = "screen play";
-    this.el.append(this.#board.el, this.#status.el, controls);
+    this.el.append(this.#board.el, this.#status.el, controls, this.#record.el);
 
     this.#unsubscribes.push(
       this.#board.onCellSelect(this.#handleCell),
@@ -93,6 +101,12 @@ export class GameView {
     );
 
     this.#render(session.state);
+  }
+
+  /** 指せない操作を弾く。揺らして鳴らす。 */
+  #reject(): void {
+    this.#board.shake();
+    this.#sound.reject();
   }
 
   #button(label: string, onClick: () => void): HTMLButtonElement {
@@ -127,7 +141,7 @@ export class GameView {
         this.#selectedId = this.#selectedId === pieceId ? null : pieceId;
       } else {
         this.#selectedId = null;
-        this.#board.shake();
+        this.#reject();
       }
       this.#render(state);
       return;
@@ -146,7 +160,7 @@ export class GameView {
       return;
     }
     if (session.sealedPieceIds().length === 0 && session.handCount(state.turn) > 0) {
-      this.#board.shake();
+      this.#reject();
     }
   };
 
@@ -161,7 +175,7 @@ export class GameView {
     const result = await this.#session.submit(move);
     if (!result.accepted) {
       // 盤に出していない手が弾かれた場合。描き直して知らせる
-      this.#board.shake();
+      this.#reject();
       this.#render(this.#session.state);
     }
   }
@@ -179,13 +193,15 @@ export class GameView {
 
     // 戻せなかったので印も積み直す
     this.#lastPieceIdHistory.push(previousLast);
-    this.#board.shake();
+    this.#reject();
     this.#render(this.#session.state);
   }
 
   /* ---------------- 対局からの通知 ---------------- */
 
   #handleEvent = (event: GameEvent): void => {
+    this.#sound.play(event);
+
     switch (event.type) {
       case "moved":
         // 1手ぶんのイベントは必ず moved で始まる。ここで前の手の分を捨てる
@@ -230,6 +246,7 @@ export class GameView {
   #render(state: GameState): void {
     this.#board.render(state, this.#decor(state));
     this.#status.render(state);
+    this.#record.render(this.#session.record);
     this.#undoButton.disabled = !this.#session.canUndo;
   }
 
@@ -262,6 +279,7 @@ export class GameView {
     this.#unsubscribes = [];
     this.#board.destroy();
     this.#status.destroy();
+    this.#record.destroy();
     this.el.remove();
   }
 }

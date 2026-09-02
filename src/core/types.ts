@@ -228,6 +228,33 @@ export type GameEvent =
   | GameEndedEvent;
 
 /* ============================================================
+ * 棋譜
+ * ========================================================== */
+
+/**
+ * 棋譜の1手。GameEvent から組み立てる。
+ *
+ * 局面そのものは持たない。並べれば何が起きたかを読み返せる、という粒度。
+ */
+export interface MoveRecord {
+  /** 何手目か。1から数える。 */
+  readonly ply: number;
+  readonly player: Player;
+  readonly pieceId: PieceId;
+  /** 打ちなら null。 */
+  readonly from: Pos | null;
+  readonly to: Pos;
+  /** この手で封じた相手の駒。 */
+  readonly sealed: readonly PieceId[];
+  /** 自分から挟まれる位置に入って封じられた。 */
+  readonly selfSealed: boolean;
+  /** この移動で自分の封じが解けた。 */
+  readonly released: boolean;
+  /** この手で決着したなら、その結果。 */
+  readonly outcome: Outcome | null;
+}
+
+/* ============================================================
  * applyMove の戻り値
  * ========================================================== */
 

@@ -302,3 +302,158 @@ describe("GameSession: 待った", () => {
     expect(session.canUndo).toBe(false);
   });
 });
+
+describe("GameSession: 棋譜", () => {
+  it("最初は空", () => {
+    const { session } = localSession();
+    expect(session.record).toEqual([]);
+  });
+
+  it("打った手を1件積む", async () => {
+    const { session } = localSession();
+
+    await session.submit(PLACE);
+
+    expect(session.record).toHaveLength(1);
+    expect(session.record[0]).toMatchObject({
+      ply: 1,
+      player: "A",
+      from: null,
+      to: { x: 2, y: 2 },
+      sealed: [],
+      selfSealed: false,
+      released: false,
+      outcome: null,
+    });
+  });
+
+  it("封じた相手の駒を記録する", async () => {
+    const initialState = makeState(`
+      . . . . .
+      . . . . .
+      A B . A .
+      . . . . .
+      . . . . .
+    `);
+    const { session } = localSession({ initialState });
+
+    await session.submit({
+      kind: "move",
+      pieceId: idAt(initialState, 3, 2),
+      to: { x: 2, y: 2 },
+    });
+
+    expect(session.record[0]).toMatchObject({
+      from: { x: 3, y: 2 },
+      to: { x: 2, y: 2 },
+      sealed: [idAt(initialState, 1, 2)],
+      selfSealed: false,
+    });
+  });
+
+  it("自分から挟まれた手は封じた枚数に数えない", async () => {
+    const initialState = makeState(`
+      . . . . .
+      . . A . .
+      . B . B .
+      . . . . .
+      . . . . .
+    `);
+    const { session } = localSession({ initialState });
+
+    await session.submit({
+      kind: "move",
+      pieceId: idAt(initialState, 2, 1),
+      to: { x: 2, y: 2 },
+    });
+
+    expect(session.record[0]).toMatchObject({ sealed: [], selfSealed: true });
+  });
+
+  it("封じが解けたことを記録する", async () => {
+    const initialState = makeState(`
+      . . . . .
+      . . a . .
+      . . . . .
+      . . . B .
+      . . . . .
+    `);
+    const { session } = localSession({ initialState });
+
+    await session.submit({
+      kind: "move",
+      pieceId: idAt(initialState, 2, 1),
+      to: { x: 2, y: 2 },
+    });
+
+    expect(session.record[0]).toMatchObject({ released: true });
+  });
+
+  it("決着はその手に付く", async () => {
+    const initialState = makeState(`
+      B . A
+      A . .
+      . . .
+    `);
+    const { session } = localSession({ initialState });
+
+    await session.submit({
+      kind: "move",
+      pieceId: idAt(initialState, 2, 0),
+      to: { x: 1, y: 0 },
+    });
+
+    expect(session.record).toHaveLength(1);
+    expect(session.record[0].outcome).toEqual({
+      kind: "win",
+      winner: "A",
+      reason: "sealedPieceStuck",
+    });
+  });
+
+  it("手数のぶんだけ積み上がる", async () => {
+    const { session } = localSession();
+
+    await session.submit(PLACE);
+    await session.submit({ kind: "place", to: { x: 0, y: 0 } });
+    await session.submit({ kind: "place", to: { x: 4, y: 4 } });
+
+    expect(session.record.map((r) => r.ply)).toEqual([1, 2, 3]);
+    expect(session.record.map((r) => r.player)).toEqual(["A", "B", "A"]);
+  });
+
+  it("待ったで戻したぶんは消える", async () => {
+    const { session } = localSession();
+
+    await session.submit(PLACE);
+    await session.submit({ kind: "place", to: { x: 0, y: 0 } });
+    expect(session.record).toHaveLength(2);
+
+    await session.undo();
+    expect(session.record).toHaveLength(1);
+    expect(session.record[0].player).toBe("A");
+
+    await session.undo();
+    expect(session.record).toEqual([]);
+  });
+
+  it("戻したあとに指し直すと、そこから積み直す", async () => {
+    const { session } = localSession();
+
+    await session.submit(PLACE);
+    await session.undo();
+    await session.submit({ kind: "place", to: { x: 0, y: 0 } });
+
+    expect(session.record).toHaveLength(1);
+    expect(session.record[0].to).toEqual({ x: 0, y: 0 });
+  });
+
+  it("断られた手は積まない", async () => {
+    const { session } = localSession();
+    await session.submit(PLACE);
+
+    await session.submit(PLACE);
+
+    expect(session.record).toHaveLength(1);
+  });
+});

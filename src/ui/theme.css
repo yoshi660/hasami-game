@@ -53,6 +53,11 @@ body {
   height: 100%;
 }
 
+/* body の背景は fixed なので、スクロール時の下地を html にも敷いておく */
+html {
+  background: var(--urushi);
+}
+
 body {
   min-height: 100%;
   padding: 28px 16px 56px;
@@ -108,17 +113,30 @@ body {
 
 /* 対局中の細い題字。スタート画面には大きな題字があるので出さない */
 .app-head {
+  width: min(560px, 100%);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
-}
-
-/* display を指定した要素は hidden 属性だけでは消えない */
-.app-head[hidden] {
-  display: none;
+  min-height: 30px;
 }
 
 .app-head-mark {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* display を指定した要素は hidden 属性だけでは消えない */
+.app-head-mark[hidden] {
+  display: none;
+}
+
+/* 題字を出さない画面でも、音の切り替えは右端に置く */
+.app-head-sound {
+  margin-left: auto;
+}
+
+.app-head-glyph {
   font-family: var(--f-disp);
   font-size: 22px;
   letter-spacing: 0.22em;
