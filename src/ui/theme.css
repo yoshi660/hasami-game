@@ -48,6 +48,14 @@
   padding: 0;
 }
 
+/*
+ * display を指定した要素には、ブラウザ標準の [hidden] { display: none } が効かない。
+ * 要素ごとに書くと必ず漏れるので、ここで一度だけ強く指定する。
+ */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;
@@ -61,6 +69,12 @@ html {
 body {
   min-height: 100%;
   padding: 28px 16px 56px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  /* 二度叩きの拡大を待たない。押した反応がすぐ返る */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -126,11 +140,6 @@ body {
   gap: 10px;
 }
 
-/* display を指定した要素は hidden 属性だけでは消えない */
-.app-head-mark[hidden] {
-  display: none;
-}
-
 /* 題字を出さない画面でも、音の切り替えは右端に置く */
 .app-head-sound {
   margin-left: auto;
@@ -157,6 +166,25 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 18px;
+}
+
+/* 手で触る画面。余白を詰めて盤に幅を回す */
+@media (max-width: 430px) {
+  body {
+    padding: 14px 10px 36px;
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-bottom: calc(36px + env(safe-area-inset-bottom));
+    gap: 16px;
+  }
+
+  .app {
+    gap: 14px;
+  }
+
+  .play {
+    gap: 14px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

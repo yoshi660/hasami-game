@@ -41,6 +41,25 @@
   }
 }
 
+@media (max-width: 430px) {
+  .board-frame {
+    padding: 19px 11px 15px;
+  }
+
+  .rail-top {
+    top: 4px;
+    left: 11px;
+    right: 11px;
+  }
+
+  .rail-left {
+    left: 1px;
+    top: 19px;
+    bottom: 15px;
+    width: 10px;
+  }
+}
+
 /* ---------------- 座標 ---------------- */
 
 .rail {
@@ -81,6 +100,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: 1;
+  user-select: none;
   border-radius: 2px;
   overflow: hidden;
   background: linear-gradient(155deg, var(--washi) 0%, var(--washi-2) 100%);
@@ -112,6 +132,7 @@
 .cell {
   position: relative;
   padding: 0;
+  touch-action: manipulation;
   border: none;
   border-right: 1px solid var(--washi-line);
   border-bottom: 1px solid var(--washi-line);
@@ -149,8 +170,21 @@
   transition: background 0.2s;
 }
 
-.cell.is-hot:hover::before {
-  background: rgba(201, 162, 39, 0.16);
+@media (hover: hover) {
+  .cell.is-hot:hover::before {
+    background: rgba(201, 162, 39, 0.16);
+  }
+}
+
+/*
+ * 指で触る画面には hover がない。押せるマスが分からなくなるので、
+ * 小さな点を常に出しておく。行き先の点より一回り小さくして混ざらないようにする。
+ */
+@media (hover: none) {
+  .cell.is-hot::before {
+    inset: 45.5%;
+    background: rgba(201, 162, 39, 0.26);
+  }
 }
 
 /* 選んだ駒の行き先 */
@@ -171,9 +205,11 @@
   animation: dest-in 0.3s ease-out backwards;
 }
 
-.cell.is-dest:hover::after {
-  opacity: 0.95;
-  transform: translate(-50%, -50%) scale(1.6);
+@media (hover: hover) {
+  .cell.is-dest:hover::after {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.6);
+  }
 }
 
 @keyframes dest-in {
