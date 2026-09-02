@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>挟み — In a Pinch</title>
+<style>
+:root{
+  --urushi:#2A0E11;
+  --urushi-2:#3B171B;
+  --urushi-3:#4A2024;
+  --washi:#E9E0CB;
+  --washi-2:#DBD0B4;
+  --washi-line:#B9AB88;
+  --sumi:#17130F;
+  --kin:#C9A227;
+  --kin-soft:#E4C766;
+  --raden:#B9E4E2;
+  --raden-2:#5FA9AE;
+  --shu:#CE4A2E;
+  --shu-soft:#E8785C;
+  --ink:#EFE7D5;
+  --ink-dim:#B5A489;
+  --ink-faint:#7E6E58;
+  --f-disp:"Yu Mincho","YuMincho","Hiragino Mincho ProN","Noto Serif JP",serif;
+  --f-body:"Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,-apple-system,sans-serif;
+  --f-num:ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(120% 90% at 50% -10%, var(--urushi-3) 0%, var(--urushi) 55%, #1E080A 100%);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:15px;
+  line-height:1.7;
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px 16px 48px;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- header ---------- */
+.topbar{
+  width:100%;max-width:1080px;
+  display:flex;align-items:baseline;gap:18px;
+  padding-bottom:14px;margin-bottom:22px;
+  border-bottom:1px solid rgba(201,162,39,.24);
+}
+.wordmark{font-family:var(--f-disp);font-size:30px;letter-spacing:.24em;color:var(--kin-soft);line-height:1}
+.wordmark-sub{font-size:11px;letter-spacing:.42em;color:var(--ink-faint);text-transform:uppercase}
+.topbar-spacer{flex:1}
+.tbtn{
+  background:none;border:1px solid rgba(201,162,39,.34);color:var(--ink-dim);
+  font-family:var(--f-body);font-size:12.5px;letter-spacing:.12em;
+  padding:6px 13px;border-radius:2px;cursor:pointer;transition:.18s;
+}
+.tbtn:hover{border-color:var(--kin);color:var(--kin-soft);background:rgba(201,162,39,.07)}
+.tbtn:focus-visible{outline:2px solid var(--kin-soft);outline-offset:2px}
+.tbtn[aria-pressed="false"]{opacity:.45}
+
+/* ---------- layout ---------- */
+.table{
+  width:100%;max-width:1080px;
+  display:grid;
+  grid-template-columns:190px minmax(0,1fr) 190px;
+  gap:26px;align-items:start;
+}
+@media (max-width:920px){
+  .table{grid-template-columns:1fr 1fr;grid-template-areas:"board board" "pa pb"}
+  .stage{grid-area:board}.tray-a{grid-area:pa}.tray-b{grid-area:pb}
+}
+
+/* ---------- trays ---------- */
+.tray{
+  border:1px solid rgba(201,162,39,.18);
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(0,0,0,.16));
+  border-radius:3px;padding:16px 15px 15px;position:relative;
+  transition:border-color .3s,box-shadow .3s;
+}
+.tray.active{
+  border-color:rgba(201,162,39,.72);
+  box-shadow:0 0 0 1px rgba(201,162,39,.18), 0 10px 34px -18px rgba(228,199,102,.6);
+}
+.tray-eyebrow{font-size:10.5px;letter-spacing:.38em;color:var(--ink-faint);text-transform:uppercase}
+.tray-name{font-family:var(--f-disp);font-size:21px;letter-spacing:.16em;margin-top:3px;line-height:1.3}
+.tray-a .tray-name{color:var(--raden)}
+.tray-b .tray-name{color:#D8CDBB}
+.tray-turn{
+  display:none;margin-top:9px;font-size:11px;letter-spacing:.3em;color:var(--kin-soft);
+  border-top:1px solid rgba(201,162,39,.3);padding-top:8px;
+}
+.tray.active .tray-turn{display:block}
+.tray-turn::before{content:"▸ ";color:var(--kin)}
+
+.stock-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-top:15px;font-size:10.5px;letter-spacing:.28em;color:var(--ink-faint);
+}
+.stock-n{font-family:var(--f-num);font-size:19px;letter-spacing:0;color:var(--ink)}
+.stock-dots{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;min-height:14px}
+.sdot{width:11px;height:11px;border-radius:50%;transition:.3s}
+.tray-a .sdot{background:radial-gradient(circle at 32% 28%,#F2FFFE,var(--raden) 42%,var(--raden-2));box-shadow:0 0 5px rgba(159,216,218,.35)}
+.tray-b .sdot{background:radial-gradient(circle at 32% 28%,#5D5348,var(--sumi) 55%);box-shadow:0 0 4px rgba(0,0,0,.5)}
+.sdot.spent{opacity:.13;box-shadow:none}
+
+.tray-alert{
+  margin-top:14px;padding:9px 10px;border-left:2px solid var(--shu);
+  background:rgba(206,74,46,.12);font-size:12px;line-height:1.6;color:var(--shu-soft);
+  display:none;
+}
+.tray-alert.on{display:block}
+
+/* ---------- stage / board ---------- */
+.stage{display:flex;flex-direction:column;align-items:center;gap:14px}
+.board-frame{
+  position:relative;width:min(560px,100%);
+  padding:26px;border-radius:4px;
+  background:linear-gradient(155deg,var(--urushi-3),#241012 70%);
+  box-shadow:0 26px 60px -30px #000, inset 0 1px 0 rgba(255,255,255,.05);
+  border:1px solid rgba(201,162,39,.22);
+}
+.board-frame.shake{animation:shake .34s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{
+  10%,90%{transform:translate(-1px,1px)}30%,70%{transform:translate(3px,-2px)}
+  50%{transform:translate(-3px,2px)}
+}
+
+.rail{position:absolute;font-family:var(--f-num);font-size:10px;color:var(--ink-faint);display:flex;pointer-events:none}
+.rail-top{top:8px;left:26px;right:26px}
+.rail-left{left:8px;top:26px;bottom:26px;flex-direction:column;width:14px}
+.rail span{flex:1;display:flex;align-items:center;justify-content:center}
+
+.board{
+  position:relative;aspect-ratio:1;width:100%;
+  background:
+    linear-gradient(155deg,var(--washi) 0%,var(--washi-2) 100%);
+  border-radius:2px;
+  box-shadow:inset 0 0 42px rgba(122,98,58,.3), 0 2px 0 rgba(255,255,255,.06);
+  overflow:hidden;
+}
+.board::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:
+    repeating-linear-gradient(90deg,rgba(160,140,100,.09) 0 1px,transparent 1px 3px),
+    repeating-linear-gradient(0deg,rgba(160,140,100,.07) 0 1px,transparent 1px 4px);
+}
+.grid{
+  position:absolute;inset:0;display:grid;
+  grid-template-columns:repeat(var(--cols),1fr);
+  grid-template-rows:repeat(var(--rows),1fr);
+}
+.cell{
+  border-right:1px solid var(--washi-line);
+  border-bottom:1px solid var(--washi-line);
+  position:relative;cursor:default;
+}
+.cell.edge-r{border-right:none}
+.cell.edge-b{border-bottom:none}
+.cell.hot{cursor:pointer}
+.cell.hot::before{
+  content:"";position:absolute;inset:14%;border-radius:50%;
+  background:rgba(201,162,39,.0);transition:background .2s;
+}
+.cell.hot:hover::before{background:rgba(201,162,39,.16)}
+.cell.dest::after{
+  content:"";position:absolute;left:50%;top:50%;width:20%;height:20%;
+  transform:translate(-50%,-50%);border-radius:50%;
+  background:var(--kin);opacity:.5;animation:dest-in .3s ease-out backwards;
+}
+.cell.dest:hover::after{opacity:.95;transform:translate(-50%,-50%) scale(1.5)}
+@keyframes dest-in{from{transform:translate(-50%,-50%) scale(.2);opacity:0}}
+.cell.bad{cursor:not-allowed}
+.cell.bad:hover{
+  background:
+    repeating-linear-gradient(45deg,rgba(206,74,46,.18) 0 4px,transparent 4px 9px);
+}
+.cell.nudge{animation:nudge .3s}
+@keyframes nudge{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+/* pieces */
+.pieces,.fxlayer{position:absolute;inset:0;pointer-events:none}
+.fx-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.piece{
+  position:absolute;top:0;left:0;
+  width:calc(100% / var(--cols));height:calc(100% / var(--rows));
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .3s cubic-bezier(.22,.9,.28,1);
+  will-change:transform;
+}
+.disc{
+  width:76%;height:76%;border-radius:50%;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.p-A .disc{
+  background:radial-gradient(circle at 33% 26%,#FFFFFF 0%,#DFF6F3 22%,var(--raden) 52%,var(--raden-2) 100%);
+  box-shadow:0 3px 7px rgba(60,40,20,.42), inset 0 -3px 6px rgba(30,90,95,.4), inset 0 2px 3px rgba(255,255,255,.85);
+}
+.p-B .disc{
+  background:radial-gradient(circle at 33% 26%,#726457 0%,#2E2721 30%,var(--sumi) 70%,#0B0907 100%);
+  box-shadow:0 3px 8px rgba(30,15,8,.55), inset 0 -2px 6px rgba(0,0,0,.7), inset 0 2px 4px rgba(255,255,255,.18);
+}
+.piece.sel .disc{
+  animation:sel-pulse 1.5s ease-in-out infinite;
+}
+@keyframes sel-pulse{
+  0%,100%{box-shadow:0 0 0 2px var(--kin), 0 0 16px 2px rgba(228,199,102,.55)}
+  50%{box-shadow:0 0 0 3px var(--kin-soft), 0 0 26px 5px rgba(228,199,102,.8)}
+}
+.piece.movable .disc::after{
+  content:"";position:absolute;inset:-4%;border-radius:50%;
+  border:1px solid rgba(201,162,39,.55);
+}
+/* the seal on a pinched piece */
+.piece.pinched .disc::before{
+  content:"";position:absolute;inset:-16%;border-radius:50%;
+  border:2px solid var(--shu);
+  animation:seal-snap .45s cubic-bezier(.2,1.4,.4,1) backwards, seal-breathe 1.7s ease-in-out infinite .45s;
+}
+@keyframes seal-snap{from{transform:scale(2.3) rotate(-40deg);opacity:0}}
+@keyframes seal-breathe{
+  0%,100%{box-shadow:0 0 8px rgba(206,74,46,.5);opacity:.85}
+  50%{box-shadow:0 0 20px 4px rgba(206,74,46,.85);opacity:1}
+}
+.piece.last .disc{outline:1px dashed rgba(201,162,39,.6);outline-offset:3px}
+
+/* the drop */
+.piece.drop .disc{animation:drop-in .5s cubic-bezier(.18,1.5,.4,1) backwards}
+@keyframes drop-in{
+  0%{transform:translateY(-26px) scale(1.75) rotate(-14deg);opacity:0}
+  55%{opacity:1}
+  70%{transform:translateY(0) scale(.9) rotate(2deg)}
+  100%{transform:translateY(0) scale(1) rotate(0)}
+}
+.piece.hop .disc{animation:hop .3s ease-out}
+@keyframes hop{40%{transform:translateY(-9px) scale(1.06)}}
+
+/* fx bits */
+.ring{
+  position:absolute;border-radius:50%;border:1.5px solid var(--kin-soft);
+  transform:translate(-50%,-50%);pointer-events:none;
+  animation:ring-out .72s cubic-bezier(.1,.7,.3,1) forwards;
+}
+@keyframes ring-out{
+  from{width:6%;height:6%;opacity:.95;border-width:3px}
+  to{width:62%;height:62%;opacity:0;border-width:.5px}
+}
+.ring.shu{border-color:var(--shu)}
+.mote{
+  position:absolute;width:3px;height:3px;border-radius:50%;background:var(--kin-soft);
+  transform:translate(-50%,-50%);animation:mote-out .78s ease-out forwards;
+}
+@keyframes mote-out{
+  from{opacity:1;transform:translate(-50%,-50%) translate(0,0) scale(1.3)}
+  to{opacity:0;transform:translate(-50%,-50%) translate(var(--dx),var(--dy)) scale(.2)}
+}
+.stamp{
+  position:absolute;transform:translate(-50%,-50%);
+  width:calc(100%/var(--cols));height:calc(100%/var(--rows));
+  border:1px solid var(--kin);animation:stamp-out .55s ease-out forwards;
+}
+@keyframes stamp-out{from{opacity:.9;transform:translate(-50%,-50%) scale(1.9) rotate(45deg)}to{opacity:0;transform:translate(-50%,-50%) scale(1) rotate(0)}}
+.axis{stroke:var(--kin);stroke-width:2;fill:none;stroke-linecap:round;
+  stroke-dasharray:200;stroke-dashoffset:200;
+  animation:axis-draw .34s ease-out forwards, axis-fade .5s ease-in 1s forwards;}
+@keyframes axis-draw{to{stroke-dashoffset:0}}
+@keyframes axis-fade{to{opacity:0}}
+
+/* ---------- log ---------- */
+.log-wrap{width:min(560px,100%)}
+.log-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:10.5px;letter-spacing:.34em;color:var(--ink-faint);
+  border-bottom:1px solid rgba(201,162,39,.18);padding-bottom:6px;
+}
+.log{
+  list-style:none;max-height:132px;overflow-y:auto;
+  font-size:12.5px;line-height:1.9;color:var(--ink-dim);
+  scrollbar-width:thin;scrollbar-color:rgba(201,162,39,.35) transparent;
+}
+.log li{display:flex;gap:10px;padding:1px 0;border-bottom:1px solid rgba(201,162,39,.06)}
+.log li:first-child{color:var(--ink)}
+.log .n{font-family:var(--f-num);color:var(--ink-faint);min-width:22px;text-align:right}
+.log .who{min-width:34px}
+.log .who.A{color:var(--raden)}
+.log .who.B{color:#CFC3AE}
+.log .note{color:var(--shu-soft)}
+.log-empty{color:var(--ink-faint);font-size:12.5px;padding-top:4px}
+
+.controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+/* ---------- overlays ---------- */
+.veil{
+  position:fixed;inset:0;background:rgba(20,6,8,.82);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;padding:24px;z-index:40;
+}
+.veil.on{display:flex;animation:fade .35s ease-out}
+@keyframes fade{from{opacity:0}}
+.sheet{
+  background:linear-gradient(165deg,var(--urushi-3),#25101300);
+  background-color:#2B1114;
+  border:1px solid rgba(201,162,39,.4);border-radius:4px;
+  padding:30px 32px;max-width:520px;width:100%;max-height:84vh;overflow-y:auto;
+  box-shadow:0 30px 80px -30px #000;
+}
+.sheet h2{font-family:var(--f-disp);font-size:24px;letter-spacing:.16em;color:var(--kin-soft);font-weight:400;margin-bottom:4px}
+.sheet .lede{font-size:12px;letter-spacing:.24em;color:var(--ink-faint);margin-bottom:20px}
+.sheet h3{font-family:var(--f-disp);font-size:15px;letter-spacing:.1em;color:var(--ink);font-weight:400;margin:20px 0 6px}
+.sheet p{font-size:13.5px;color:var(--ink-dim);margin-bottom:8px}
+.sheet .rule-n{color:var(--kin);font-family:var(--f-num);font-size:11px;margin-right:7px}
+.sheet-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:26px}
+
+.field{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid rgba(201,162,39,.13)}
+.field label{font-size:13.5px;color:var(--ink)}
+.field .hint{font-size:11.5px;color:var(--ink-faint);display:block;line-height:1.5}
+.seg{display:flex;border:1px solid rgba(201,162,39,.3);border-radius:2px;overflow:hidden;flex:none}
+.seg button{
+  background:none;border:none;color:var(--ink-dim);font-family:var(--f-num);font-size:13px;
+  padding:6px 13px;cursor:pointer;transition:.15s;
+}
+.seg button+button{border-left:1px solid rgba(201,162,39,.2)}
+.seg button[aria-checked="true"]{background:rgba(201,162,39,.9);color:#2A0E11}
+.seg button:hover:not([aria-checked="true"]){background:rgba(201,162,39,.12);color:var(--kin-soft)}
+
+/* result */
+.result{text-align:center;position:relative;z-index:2}
+.result .verdict{font-family:var(--f-disp);font-size:clamp(38px,9vw,66px);letter-spacing:.2em;color:var(--kin-soft);line-height:1.2;
+  animation:verdict-in .8s cubic-bezier(.2,1,.3,1) backwards}
+@keyframes verdict-in{from{opacity:0;letter-spacing:.7em;filter:blur(8px)}}
+.result .detail{font-size:14px;color:var(--ink-dim);letter-spacing:.2em;margin-top:10px;
+  animation:fade .8s .35s backwards}
+.flake{position:fixed;width:7px;height:9px;background:var(--kin);opacity:.85;pointer-events:none;z-index:41;
+  animation:fall linear forwards}
+@keyframes fall{
+  from{transform:translateY(-40px) rotate(0)}
+  to{transform:translateY(105vh) rotate(720deg);opacity:.1}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div>
+    <div class="wordmark">挟</div>
+    <div class="wordmark-sub">in a pinch</div>
+  </div>
+  <div class="topbar-spacer"></div>
+  <button class="tbtn" id="btn-rules">ルール</button>
+  <button class="tbtn" id="btn-config">設定</button>
+  <button class="tbtn" id="btn-sound" aria-pressed="true">音 ON</button>
+</header>
+
+<main class="table">
+  <section class="tray tray-a" id="tray-A">
+    <div class="tray-eyebrow">先手</div>
+    <div class="tray-name">螺鈿</div>
+    <div class="tray-turn">手番</div>
+    <div class="stock-head"><span>持ち駒</span><span class="stock-n" id="stock-A">0</span></div>
+    <div class="stock-dots" id="dots-A"></div>
+    <div class="tray-alert" id="alert-A"></div>
+  </section>
+
+  <section class="stage">
+    <div class="board-frame" id="frame">
+      <div class="rail rail-top" id="rail-top"></div>
+      <div class="rail rail-left" id="rail-left"></div>
+      <div class="board" id="board">
+        <div class="grid" id="grid"></div>
+        <div class="pieces" id="pieces"></div>
+        <div class="fxlayer" id="fx"></div>
+        <svg class="fx-svg" id="fxsvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+    </div>
+
+    <div class="log-wrap">
+      <div class="log-head"><span>棋譜</span><span id="turncount">0 手</span></div>
+      <ul class="log" id="log"></ul>
+      <div class="log-empty" id="log-empty">空きマスを押して駒を打つ。自分の駒を押すと動かせる。</div>
+    </div>
+
+    <div class="controls">
+      <button class="tbtn" id="btn-undo">待った</button>
+      <button class="tbtn" id="btn-reset">最初から</button>
+    </div>
+  </section>
+
+  <section class="tray tray-b" id="tray-B">
+    <div class="tray-eyebrow">後手</div>
+    <div class="tray-name">黒漆</div>
+    <div class="tray-turn">手番</div>
+    <div class="stock-head"><span>持ち駒</span><span class="stock-n" id="stock-B">0</span></div>
+    <div class="stock-dots" id="dots-B"></div>
+    <div class="tray-alert" id="alert-B"></div>
+  </section>
+</main>
+
+<div class="veil" id="veil-rules">
+  <div class="sheet">
+    <h2>挟みのルール</h2>
+    <div class="lede">TWO PLAYERS · ONE SCREEN</div>
+    <p><span class="rule-n">01</span>手番では「持ち駒を空きマスに打つ」か「盤上の自分の駒を上下左右に動かす」かのどちらかを行う。移動は最大 <span id="r-range">1</span> マスで、手前に駒があればそこで止まる。</p>
+    <p><span class="rule-n">02</span>駒を動かした結果、敵の駒が自分の駒（または盤の端）に両側から挟まれたら、その駒は封じられる。封じられた駒の持ち主は、次の手番でその駒を最優先で動かさなければならない。</p>
+    <p><span class="rule-n">03</span>盤の端は壁として扱う。角や辺に寄せた駒は片側を壁に取られているため、反対側に敵駒が来るだけで封じられる。角は最も危険な場所。</p>
+    <p><span class="rule-n">04</span>自分から挟まれる位置に飛び込んだ場合も同じく封じられる。逃げた先でまた挟まれれば連鎖する。</p>
+    <p><span class="rule-n">05</span>封じられた駒がひとつも動かせないまま手番が来たら、その時点で負け。打つことも動かすこともできなくなった場合も負け。</p>
+    <p><span class="rule-n">06</span>駒を打つことで挟みの形を作ることはできない。挟みは必ず移動で成立させる。</p>
+    <p><span class="rule-n">07</span>同じ局面が3回現れたら引き分け。</p>
+    <div class="sheet-foot"><button class="tbtn" data-close>閉じる</button></div>
+  </div>
+</div>
+
+<div class="veil" id="veil-config">
+  <div class="sheet">
+    <h2>設定</h2>
+    <div class="lede">変更すると新しい対局が始まります</div>
+    <div class="field">
+      <label>盤の大きさ<span class="hint">大きいほど逃げ場が増える</span></label>
+      <div class="seg" data-opt="size"><button data-v="5">5</button><button data-v="7">7</button><button data-v="9">9</button></div>
+    </div>
+    <div class="field">
+      <label>移動できる距離<span class="hint">長いほど攻めが速くなる</span></label>
+      <div class="seg" data-opt="range"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button></div>
+    </div>
+    <div class="field">
+      <label>持ち駒の数<span class="hint">少ないほど塊を作りにくい</span></label>
+      <div class="seg" data-opt="stock"><button data-v="6">6</button><button data-v="8">8</button><button data-v="12">12</button></div>
+    </div>
+    <div class="sheet-foot">
+      <button class="tbtn" data-close>やめる</button>
+      <button class="tbtn" id="btn-apply">この設定で始める</button>
+    </div>
+  </div>
+</div>
+
+<div class="veil" id="veil-result">
+  <div class="result">
+    <div class="verdict" id="verdict"></div>
+    <div class="detail" id="verdict-detail"></div>
+    <div class="sheet-foot" style="justify-content:center">
+      <button class="tbtn" id="btn-again">もう一局</button>
+      <button class="tbtn" data-close>盤を見る</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
+const AXES = [[[-1,0],[1,0]],[[0,-1],[0,1]]];
+const NAME = {A:"螺鈿", B:"黒漆"};
+const SIDE = {A:"先手", B:"後手"};
+
+let cfg = { size:7, range:1, stock:8 };
+let S = null;
+let sel = null;           // selected piece id
+let past = [];            // undo stack
+let soundOn = true;
+let audio = null;
+
+/* ============ engine ============ */
+const K = (r,c) => r + "," + c;
+const inB = (s,r,c) => r>=0 && r<s.rows && c>=0 && c<s.cols;
+const at = (s,r,c) => { const id = s.board[K(r,c)]; return id ? s.pieces[id] : null; };
+const foe = p => p === "A" ? "B" : "A";
+
+// A cell counts as a flank for `who` if it holds one of their pieces,
+// or if it is off the board — the edge is a wall that serves both sides.
+function flank(s, r, c, who){
+  if (!inB(s,r,c)) return "wall";
+  const p = at(s,r,c);
+  return (p && p.player === who) ? "piece" : null;
+}
+
+function newState(){
+  const s = {
+    rows: cfg.size, cols: cfg.size, range: cfg.range,
+    board:{}, pieces:{}, nextId:1,
+    stock:{A:cfg.stock, B:cfg.stock},
+    turn:"A", obligated:{A:[],B:[]},
+    winner:null, draw:false, reps:{}, ply:0
+  };
+  s.reps[repKey(s)] = 1;
+  return s;
+}
+
+function repKey(s){
+  const cells = Object.keys(s.board).sort().map(k => k + s.pieces[s.board[k]].player).join("|");
+  return cells + "#" + s.turn + "#" + s.obligated.A.slice().sort() + "/" + s.obligated.B.slice().sort();
+}
+
+// pieces this move would pinch: [{id, mid:[r,c], from:[r,c], to:[r,c]}]
+function pinchesFrom(s, piece){
+  const out = [];
+  for (const [dr,dc] of DIRS){
+    const mr = piece.r+dr, mc = piece.c+dc;
+    const fr = piece.r+dr*2, fc = piece.c+dc*2;
+    if (!inB(s,mr,mc)) continue;
+    const mid = at(s,mr,mc);
+    if (!mid || mid.player === piece.player) continue;
+    if (!flank(s,fr,fc,piece.player)) continue;
+    out.push({ id:mid.id, mid:[mr,mc], from:[piece.r,piece.c], to:[fr,fc] });
+  }
+  return out;
+}
+
+// is this piece itself caught between two enemy flanks?
+function selfPinch(s, piece){
+  const en = foe(piece.player);
+  for (const [[ar,ac],[br,bc]] of AXES){
+    const p1 = flank(s, piece.r+ar, piece.c+ac, en);
+    const p2 = flank(s, piece.r+br, piece.c+bc, en);
+    if (!p1 || !p2) continue;
+    if (p1 === "wall" && p2 === "wall") continue;   // a 1-wide board, not a pinch
+    return { from:[piece.r+ar,piece.c+ac], to:[piece.r+br,piece.c+bc] };
+  }
+  return null;
+}
+
+function placementPinches(s, player, r, c){
+  const ghost = { id:-1, player, r, c };
+  s.pieces[-1] = ghost; s.board[K(r,c)] = -1;
+  const bad = pinchesFrom(s, ghost).length > 0 || selfPinch(s, ghost) !== null;
+  delete s.pieces[-1]; delete s.board[K(r,c)];
+  return bad;
+}
+
+function legalPlacements(s, player){
+  if (s.obligated[player].length || s.stock[player] <= 0) return [];
+  const out = [];
+  for (let r=0;r<s.rows;r++) for (let c=0;c<s.cols;c++){
+    if (s.board[K(r,c)] !== undefined) continue;
+    if (placementPinches(s, player, r, c)) continue;
+    out.push([r,c]);
+  }
+  return out;
+}
+
+function legalMoves(s, id){
+  const p = s.pieces[id], out = [];
+  for (const [dr,dc] of DIRS){
+    for (let k=1;k<=s.range;k++){
+      const r = p.r+dr*k, c = p.c+dc*k;
+      if (!inB(s,r,c) || s.board[K(r,c)] !== undefined) break;
+      out.push([r,c]);
+    }
+  }
+  return out;
+}
+
+function movable(s, player){
+  const pool = s.obligated[player].length
+    ? s.obligated[player]
+    : Object.keys(s.pieces).filter(id => s.pieces[id].player === player).map(Number);
+  return pool.filter(id => legalMoves(s,id).length);
+}
+
+function place(s, player, r, c){
+  const p = { id:s.nextId++, player, r, c };
+  s.pieces[p.id] = p; s.board[K(r,c)] = p.id; s.stock[player]--;
+  return endTurn(s, { kind:"place", piece:p.id, to:[r,c], pinched:[], self:null });
+}
+
+function move(s, player, id, r, c){
+  const p = s.pieces[id];
+  const from = [p.r, p.c];
+  delete s.board[K(p.r,p.c)];
+  p.r = r; p.c = c; s.board[K(r,c)] = id;
+  s.obligated[player] = s.obligated[player].filter(x => x !== id);
+
+  const res = { kind:"move", piece:id, from, to:[r,c], pinched:[], self:null };
+  const hits = pinchesFrom(s, p);
+  for (const h of hits){
+    if (!s.obligated[foe(player)].includes(h.id)) s.obligated[foe(player)].push(h.id);
+  }
+  res.pinched = hits;
+
+  const sp = selfPinch(s, p);
+  if (sp){ s.obligated[player].push(id); res.self = { id, ...sp }; }
+
+  return endTurn(s, res);
+}
+
+function endTurn(s, res){
+  s.ply++;
+  s.turn = foe(s.turn);
+  const t = s.turn;
+
+  if (s.obligated[t].length){
+    if (!movable(s,t).length){ s.winner = foe(t); res.reason = "封じられた駒が動けない"; return res; }
+  } else if (!legalPlacements(s,t).length && !movable(s,t).length){
+    s.winner = foe(t); res.reason = "指せる手がない"; return res;
+  }
+
+  const k = repKey(s);
+  s.reps[k] = (s.reps[k]||0) + 1;
+  if (s.reps[k] >= 3){ s.draw = true; res.reason = "同一局面が3回"; }
+  return res;
+}
+
+const over = () => S.winner !== null || S.draw;
+
+/* ============ sound ============ */
+function ac(){
+  if (!audio) audio = new (window.AudioContext||window.webkitAudioContext)();
+  if (audio.state === "suspended") audio.resume();
+  return audio;
+}
+function clack(){
+  if (!soundOn) return;
+  const x = ac(), t = x.currentTime;
+  const n = x.createBufferSource();
+  const buf = x.createBuffer(1, 2048, x.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/d.length, 4);
+  n.buffer = buf;
+  const bp = x.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=1500; bp.Q.value=2.4;
+  const g = x.createGain(); g.gain.setValueAtTime(.5,t); g.gain.exponentialRampToValueAtTime(.001,t+.14);
+  n.connect(bp).connect(g).connect(x.destination); n.start(t); n.stop(t+.15);
+
+  const o = x.createOscillator(), og = x.createGain();
+  o.frequency.setValueAtTime(220,t); o.frequency.exponentialRampToValueAtTime(90,t+.1);
+  og.gain.setValueAtTime(.22,t); og.gain.exponentialRampToValueAtTime(.001,t+.13);
+  o.connect(og).connect(x.destination); o.start(t); o.stop(t+.14);
+}
+function tone(freqs, dur=.3, type="triangle", vol=.16){
+  if (!soundOn) return;
+  const x = ac(), t = x.currentTime;
+  freqs.forEach((f,i) => {
+    const o = x.createOscillator(), g = x.createGain();
+    o.type = type; o.frequency.value = f;
+    const st = t + i*.09;
+    g.gain.setValueAtTime(0,st);
+    g.gain.linearRampToValueAtTime(vol,st+.015);
+    g.gain.exponentialRampToValueAtTime(.001,st+dur);
+    o.connect(g).connect(x.destination); o.start(st); o.stop(st+dur+.02);
+  });
+}
+
+/* ============ dom ============ */
+const $ = id => document.getElementById(id);
+const board = $("board"), grid = $("grid"), layer = $("pieces"), fx = $("fx"), fxsvg = $("fxsvg");
+const els = new Map();
+let lastTouched = null;
+
+const label = (r,c) => String.fromCharCode(65+c) + (r+1);
+const pc = (r,c,s=S) => [ (c+0.5)/s.cols*100, (r+0.5)/s.rows*100 ];
+
+function buildBoard(){
+  board.style.setProperty("--cols", S.cols);
+  board.style.setProperty("--rows", S.rows);
+  fx.style.setProperty("--cols", S.cols);
+  fx.style.setProperty("--rows", S.rows);
+  grid.innerHTML = "";
+  for (let r=0;r<S.rows;r++) for (let c=0;c<S.cols;c++){
+    const d = document.createElement("div");
+    d.className = "cell" + (c===S.cols-1?" edge-r":"") + (r===S.rows-1?" edge-b":"");
+    d.dataset.r = r; d.dataset.c = c;
+    grid.appendChild(d);
+  }
+  $("rail-top").innerHTML = Array.from({length:S.cols},(_,c)=>`<span>${String.fromCharCode(65+c)}</span>`).join("");
+  $("rail-left").innerHTML = Array.from({length:S.rows},(_,r)=>`<span>${r+1}</span>`).join("");
+  els.clear(); layer.innerHTML = "";
+}
+
+function syncPieces(dropId){
+  for (const [id,el] of els) if (!S.pieces[id]){ el.remove(); els.delete(id); }
+  for (const id in S.pieces){
+    const p = S.pieces[id];
+    let el = els.get(p.id);
+    if (!el){
+      el = document.createElement("div");
+      el.className = "piece p-" + p.player;
+      el.innerHTML = '<div class="disc"></div>';
+      if (p.id === dropId) el.classList.add("drop");
+      layer.appendChild(el);
+      els.set(p.id, el);
+    }
+    el.style.transform = `translate(${p.c*100}%, ${p.r*100}%)`;
+    el.classList.toggle("pinched", S.obligated[p.player].includes(p.id));
+    el.classList.toggle("sel", sel === p.id);
+    el.classList.toggle("last", lastTouched === p.id);
+    el.classList.remove("movable");
+  }
+}
+
+function markCells(){
+  const cells = grid.children;
+  for (const d of cells){ d.className = d.className.replace(/ ?(hot|dest|bad)/g,""); }
+  if (over()) return;
+  const t = S.turn;
+
+  if (sel !== null){
+    for (const [r,c] of legalMoves(S, sel)) cells[r*S.cols+c].classList.add("dest","hot");
+  }
+  const canPlace = !S.obligated[t].length && S.stock[t] > 0;
+  if (canPlace){
+    const ok = new Set(legalPlacements(S,t).map(([r,c])=>r*S.cols+c));
+    for (let i=0;i<cells.length;i++){
+      const r = Math.floor(i/S.cols), c = i%S.cols;
+      if (S.board[K(r,c)] !== undefined) continue;
+      if (ok.has(i)) cells[i].classList.add("hot");
+      else if (sel === null) cells[i].classList.add("bad");
+    }
+  }
+  // own pieces you may pick up
+  for (const id of movable(S,t)){
+    const p = S.pieces[id];
+    cells[p.r*S.cols+p.c].classList.add("hot");
+    els.get(id)?.classList.add("movable");
+  }
+}
+
+function render(dropId){
+  syncPieces(dropId);
+  markCells();
+  for (const pl of ["A","B"]){
+    const n = S.stock[pl];
+    $("stock-"+pl).textContent = n;
+    const dots = $("dots-"+pl);
+    if (dots.children.length !== cfg.stock){
+      dots.innerHTML = Array.from({length:cfg.stock},()=>'<i class="sdot"></i>').join("");
+    }
+    [...dots.children].forEach((d,i)=>d.classList.toggle("spent", i >= n));
+    $("tray-"+pl).classList.toggle("active", S.turn === pl && !over());
+
+    const al = $("alert-"+pl);
+    const ob = S.obligated[pl];
+    if (ob.length && !over()){
+      const where = ob.map(id => S.pieces[id] ? label(S.pieces[id].r, S.pieces[id].c) : "?").join("・");
+      al.textContent = `${where} が封じられている。この駒を動かすこと。`;
+      al.classList.add("on");
+    } else al.classList.remove("on");
+  }
+  $("turncount").textContent = S.ply + " 手";
+  $("btn-undo").disabled = !past.length;
+  $("btn-undo").style.opacity = past.length ? 1 : .35;
+}
+
+/* ============ effects ============ */
+function ripple(r,c,shu){
+  const [x,y] = pc(r,c);
+  const ring = document.createElement("div");
+  ring.className = "ring" + (shu?" shu":"");
+  ring.style.left = x+"%"; ring.style.top = y+"%";
+  fx.appendChild(ring); setTimeout(()=>ring.remove(), 800);
+}
+function stamp(r,c){
+  const [x,y] = pc(r,c);
+  const s = document.createElement("div");
+  s.className = "stamp"; s.style.left = x+"%"; s.style.top = y+"%";
+  fx.appendChild(s); setTimeout(()=>s.remove(), 600);
+}
+function motes(r,c,n=7,col){
+  const [x,y] = pc(r,c);
+  for (let i=0;i<n;i++){
+    const m = document.createElement("div");
+    m.className = "mote";
+    const a = (i/n)*Math.PI*2 + Math.random(), d = 18+Math.random()*24;
+    m.style.left = x+"%"; m.style.top = y+"%";
+    m.style.setProperty("--dx", Math.cos(a)*d+"px");
+    m.style.setProperty("--dy", Math.sin(a)*d+"px");
+    if (col) m.style.background = col;
+    fx.appendChild(m); setTimeout(()=>m.remove(), 820);
+  }
+}
+// draws the line that explains the pinch: flank -> flank, through the trapped piece
+function axisLine(from, to){
+  const clamp = ([r,c]) => {
+    const rr = Math.max(-0.5, Math.min(S.rows-0.5, r));
+    const cc = Math.max(-0.5, Math.min(S.cols-0.5, c));
+    return pc(rr,cc);
+  };
+  const [x1,y1] = clamp(from), [x2,y2] = clamp(to);
+  const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+  l.setAttribute("x1",x1); l.setAttribute("y1",y1);
+  l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+  l.setAttribute("class","axis");
+  l.setAttribute("vector-effect","non-scaling-stroke");
+  fxsvg.appendChild(l); setTimeout(()=>l.remove(), 1600);
+}
+function shakeBoard(){
+  $("frame").classList.remove("shake");
+  void $("frame").offsetWidth;
+  $("frame").classList.add("shake");
+}
+function goldRain(){
+  for (let i=0;i<44;i++){
+    const f = document.createElement("div");
+    f.className = "flake";
+    f.style.left = Math.random()*100+"vw";
+    f.style.animationDuration = (2.4+Math.random()*2.4)+"s";
+    f.style.animationDelay = (Math.random()*1.4)+"s";
+    f.style.opacity = .4+Math.random()*.5;
+    f.style.background = Math.random()<.3 ? "#E4C766" : "#C9A227";
+    document.body.appendChild(f);
+    setTimeout(()=>f.remove(), 6500);
+  }
+}
+
+/* ============ log ============ */
+function addLog(player, res){
+  const li = document.createElement("li");
+  const to = label(res.to[0], res.to[1]);
+  let txt = res.kind === "place"
+    ? `${to} に打つ`
+    : `${label(res.from[0],res.from[1])} → ${to}`;
+  let note = "";
+  if (res.pinched.length) note += ` 封 ${res.pinched.map(h=>label(h.mid[0],h.mid[1])).join("・")}`;
+  if (res.self) note += " 自ら封じられる";
+  li.innerHTML = `<span class="n">${S.ply}</span><span class="who ${player}">${NAME[player]}</span>`
+    + `<span>${txt}<span class="note">${note}</span></span>`;
+  const log = $("log");
+  log.prepend(li);
+  $("log-empty").style.display = "none";
+}
+
+/* ============ turn flow ============ */
+function snapshot(){
+  past.push({
+    s: JSON.parse(JSON.stringify(S)),
+    log: $("log").innerHTML,
+    last: lastTouched
+  });
+  if (past.length > 80) past.shift();
+}
+
+function commit(player, res){
+  lastTouched = res.piece;
+  sel = null;
+
+  if (res.kind === "place"){
+    clack();
+    ripple(res.to[0], res.to[1]);
+    stamp(res.to[0], res.to[1]);
+    motes(res.to[0], res.to[1], 8);
+  } else {
+    tone([330], .12, "sine", .1);
+    els.get(res.piece)?.classList.add("hop");
+    setTimeout(()=>els.get(res.piece)?.classList.remove("hop"), 320);
+  }
+
+  render(res.kind === "place" ? res.piece : null);
+  addLog(player, res);
+
+  const caught = res.pinched.length + (res.self ? 1 : 0);
+  if (caught){
+    setTimeout(()=>{
+      shakeBoard();
+      tone([196,147], .5, "sawtooth", .1);
+      for (const h of res.pinched){
+        ripple(h.mid[0], h.mid[1], true);
+        motes(h.mid[0], h.mid[1], 10, "#CE4A2E");
+        axisLine(h.from, h.to);
+      }
+      if (res.self){
+        const p = S.pieces[res.self.id];
+        ripple(p.r, p.c, true);
+        motes(p.r, p.c, 10, "#CE4A2E");
+        axisLine(res.self.from, res.self.to);
+      }
+    }, res.kind === "place" ? 120 : 260);
+  }
+
+  if (over()) setTimeout(finish, caught ? 1000 : 620);
+}
+
+function finish(){
+  const v = $("verdict"), d = $("verdict-detail");
+  if (S.draw){
+    v.textContent = "千日手";
+    d.textContent = "同じ局面が三度あらわれた";
+    tone([294,294], .5, "sine", .12);
+  } else {
+    v.textContent = NAME[S.winner] + " の勝ち";
+    d.textContent = SIDE[S.winner] + " · " + S.ply + " 手";
+    tone([392,494,587,784], .55, "triangle", .13);
+    goldRain();
+  }
+  $("veil-result").classList.add("on");
+  render();
+}
+
+function onCell(r,c){
+  if (over()) return;
+  const t = S.turn;
+  const here = at(S,r,c);
+
+  // tap one of your own movable pieces to pick it up
+  if (here && here.player === t){
+    if (sel === here.id){ sel = null; render(); return; }
+    if (movable(S,t).includes(here.id)){
+      sel = here.id;
+      tone([523], .07, "sine", .07);
+      render();
+    } else {
+      bump(r,c);
+      if (S.obligated[t].length) flashAlert(t);
+    }
+    return;
+  }
+
+  // tap an empty square: move there if something is selected, otherwise drop a piece
+  if (!here){
+    if (sel !== null){
+      if (legalMoves(S,sel).some(([mr,mc]) => mr===r && mc===c)){
+        snapshot();
+        commit(t, move(S, t, sel, r, c));
+      } else { sel = null; render(); }
+      return;
+    }
+    if (S.obligated[t].length){ bump(r,c); flashAlert(t); return; }
+    if (S.stock[t] <= 0){ bump(r,c); return; }
+    if (placementPinches(S,t,r,c)){ bump(r,c); tone([180],.12,"square",.07); return; }
+    snapshot();
+    commit(t, place(S, t, r, c));
+  }
+}
+
+function bump(r,c){
+  const d = grid.children[r*S.cols+c];
+  d.classList.remove("nudge"); void d.offsetWidth; d.classList.add("nudge");
+  setTimeout(()=>d.classList.remove("nudge"), 320);
+}
+function flashAlert(pl){
+  const a = $("alert-"+pl);
+  a.style.transition = "none"; a.style.background = "rgba(206,74,46,.34)";
+  setTimeout(()=>{ a.style.transition = "background .5s"; a.style.background = ""; }, 40);
+}
+
+/* ============ controls ============ */
+function reset(){
+  S = newState(); sel = null; past = []; lastTouched = null;
+  $("log").innerHTML = ""; $("log-empty").style.display = "";
+  fxsvg.innerHTML = ""; fx.innerHTML = "";
+  $("veil-result").classList.remove("on");
+  $("r-range").textContent = cfg.range;
+  buildBoard(); render();
+}
+
+function undo(){
+  const p = past.pop();
+  if (!p) return;
+  S = p.s; sel = null; lastTouched = p.last;
+  $("log").innerHTML = p.log;
+  $("log-empty").style.display = $("log").children.length ? "none" : "";
+  fxsvg.innerHTML = "";
+  $("veil-result").classList.remove("on");
+  buildBoard(); render();
+  tone([262],.1,"sine",.07);
+}
+
+grid.addEventListener("click", e => {
+  const d = e.target.closest(".cell");
+  if (d) onCell(+d.dataset.r, +d.dataset.c);
+});
+$("btn-undo").addEventListener("click", undo);
+$("btn-reset").addEventListener("click", () => { if (past.length && !over() && !confirm("対局を最初からやり直しますか。")) return; reset(); });
+$("btn-again").addEventListener("click", reset);
+$("btn-rules").addEventListener("click", () => $("veil-rules").classList.add("on"));
+$("btn-config").addEventListener("click", () => { syncSeg(); $("veil-config").classList.add("on"); });
+$("btn-sound").addEventListener("click", e => {
+  soundOn = !soundOn;
+  e.target.textContent = soundOn ? "音 ON" : "音 OFF";
+  e.target.setAttribute("aria-pressed", soundOn);
+  if (soundOn) tone([440],.1,"sine",.08);
+});
+document.querySelectorAll("[data-close]").forEach(b =>
+  b.addEventListener("click", () => b.closest(".veil").classList.remove("on")));
+document.querySelectorAll(".veil").forEach(v =>
+  v.addEventListener("click", e => { if (e.target === v) v.classList.remove("on"); }));
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape"){ document.querySelectorAll(".veil.on").forEach(v=>v.classList.remove("on")); sel = null; render(); }
+  if (e.key === "z" && (e.metaKey||e.ctrlKey)){ e.preventDefault(); undo(); }
+});
+
+let pending = { ...cfg };
+function syncSeg(){
+  pending = { ...cfg };
+  document.querySelectorAll(".seg").forEach(seg => {
+    const key = seg.dataset.opt;
+    [...seg.children].forEach(b =>
+      b.setAttribute("aria-checked", String(+b.dataset.v === pending[key])));
+  });
+}
+document.querySelectorAll(".seg").forEach(seg => {
+  seg.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    pending[seg.dataset.opt] = +b.dataset.v;
+    [...seg.children].forEach(x => x.setAttribute("aria-checked", String(x === b)));
+  });
+});
+$("btn-apply").addEventListener("click", () => {
+  cfg = { ...pending };
+  $("veil-config").classList.remove("on");
+  reset();
+});
+
+reset();
+})();
+</script>
+</body>
+</html>
