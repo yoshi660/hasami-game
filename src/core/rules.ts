@@ -32,6 +32,7 @@ import {
 import type {
   BoardConfig,
   GameEvent,
+  MoveRecord,
   GameState,
   Move,
   MoveError,
@@ -76,6 +77,17 @@ export function createGame(config: BoardConfig = DEFAULT_CONFIG): GameState {
   };
 
   return { ...state, repetitions: new Map([[repetitionKey(state), 1]]) };
+}
+
+/**
+ * 棋譜の1手から、それを指すための着手を戻す。
+ *
+ * 同じ設定の開始局面に同じ順で流し込めば、同じ対局をなぞれる。
+ * 駒 ID は打った順に振られるので、指し直しても同じ駒に同じ ID が付く。
+ */
+export function moveOf(record: MoveRecord): Move {
+  if (record.from === null) return { kind: "place", to: record.to };
+  return { kind: "move", pieceId: record.pieceId, to: record.to };
 }
 
 /* ============================================================

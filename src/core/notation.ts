@@ -10,8 +10,11 @@ import type { MoveRecord, Outcome, Player, Pos } from "./types";
 /** 先手・後手の印。 */
 export const SIDE_MARK: Record<Player, string> = { A: "▲", B: "△" };
 
-/** 側の名前。 */
-export const SIDE_NAME: Record<Player, string> = { A: "螺鈿", B: "黒漆" };
+/** 側の名前。駒の色をそのまま呼ぶ。 */
+export const SIDE_NAME: Record<Player, string> = { A: "黒", B: "白" };
+
+/** 先手・後手。 */
+export const SIDE_ROLE: Record<Player, string> = { A: "先手", B: "後手" };
 
 /** 列の記号。左から A, B, C... */
 export function columnLabel(x: number): string {

@@ -4,11 +4,9 @@
  * 局面を受け取って表示を合わせるだけ。ルールも入力も持たない。
  */
 
-import { SIDE_NAME } from "../core/notation";
+import { SIDE_NAME, SIDE_ROLE } from "../core/notation";
 import type { BoardConfig, GameState, Player } from "../core/types";
 import "./status.css";
-
-const SIDE_ROLE: Record<Player, string> = { A: "先手", B: "後手" };
 
 interface SideElements {
   readonly root: HTMLElement;

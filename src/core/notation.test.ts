@@ -78,19 +78,19 @@ describe("noteText", () => {
 describe("outcomeText", () => {
   it("封じ駒が動けない負け", () => {
     expect(outcomeText({ kind: "win", winner: "A", reason: "sealedPieceStuck" })).toBe(
-      "封じられた駒が動けず 螺鈿の勝ち",
+      "封じられた駒が動けず 黒の勝ち",
     );
   });
 
   it("指せる手がない負け", () => {
     expect(outcomeText({ kind: "win", winner: "B", reason: "noLegalMove" })).toBe(
-      "指せる手がなく 黒漆の勝ち",
+      "指せる手がなく 白の勝ち",
     );
   });
 
   it("4つつなげた負け", () => {
     expect(outcomeText({ kind: "win", winner: "B", reason: "overConnected" })).toBe(
-      "4つつなげて 黒漆の勝ち",
+      "4つつなげて 白の勝ち",
     );
   });
 

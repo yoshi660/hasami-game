@@ -7,6 +7,7 @@ import {
   legalMoves,
   legalPlacements,
   movablePieceIds,
+  moveOf,
 } from "./rules";
 import { repetitionKey } from "./result";
 import { errorOf, eventTypes, idAt, makeState, normalize, render, unwrap } from "./testing";
@@ -561,5 +562,81 @@ describe("createGame", () => {
     expect(state.turn).toBe("B");
     expect(state.hands).toEqual({ A: 7, B: 8 });
     expect(state.pieces.size).toBe(1);
+  });
+});
+
+describe("moveOf", () => {
+  it("打ちは行き先だけの着手に戻る", () => {
+    const move = moveOf({
+      ply: 1,
+      player: "A",
+      pieceId: 1,
+      from: null,
+      to: { x: 3, y: 3 },
+      sealed: [],
+      selfSealed: false,
+      released: false,
+      outcome: null,
+    });
+
+    expect(move).toEqual({ kind: "place", to: { x: 3, y: 3 } });
+  });
+
+  it("移動は駒と行き先の着手に戻る", () => {
+    const move = moveOf({
+      ply: 2,
+      player: "B",
+      pieceId: 7,
+      from: { x: 4, y: 3 },
+      to: { x: 3, y: 3 },
+      sealed: [],
+      selfSealed: false,
+      released: false,
+      outcome: null,
+    });
+
+    expect(move).toEqual({ kind: "move", pieceId: 7, to: { x: 3, y: 3 } });
+  });
+
+  it("棋譜を流し直すと同じ局面になる", () => {
+    const start = createGame({ ...DEFAULT_CONFIG, cols: 5, rows: 5 });
+
+    // 適当に何手か指す
+    let live = start;
+    const played = [
+      { kind: "place", to: { x: 2, y: 2 } },
+      { kind: "place", to: { x: 0, y: 0 } },
+      { kind: "place", to: { x: 4, y: 4 } },
+      { kind: "place", to: { x: 0, y: 4 } },
+    ] as const;
+    const records = [];
+    for (const move of played) {
+      const applied = unwrap(applyMove(live, move));
+      live = applied.state;
+      // moveOf に渡せる形を、指した手から作る
+      const moved = applied.events[0];
+      if (moved.type !== "moved") throw new Error("moved が先頭にない");
+      records.push({
+        ply: live.ply,
+        player: moved.owner,
+        pieceId: moved.pieceId,
+        from: moved.from,
+        to: moved.to,
+        sealed: [],
+        selfSealed: false,
+        released: moved.released,
+        outcome: null,
+      });
+    }
+
+    // 棋譜から指し直す
+    let replayed = start;
+    for (const record of records) {
+      replayed = unwrap(applyMove(replayed, moveOf(record))).state;
+    }
+
+    expect(render(replayed)).toBe(render(live));
+    expect(replayed.ply).toBe(live.ply);
+    expect(replayed.hands).toEqual(live.hands);
   });
 });

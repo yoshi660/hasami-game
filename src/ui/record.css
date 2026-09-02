@@ -60,11 +60,11 @@
 }
 
 .record-side.side-A {
-  color: var(--raden);
+  color: #b9ab90;
 }
 
 .record-side.side-B {
-  color: #cfc3ae;
+  color: var(--shiro);
 }
 
 .record-move {

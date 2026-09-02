@@ -44,11 +44,11 @@
 }
 
 .side-a .side-name {
-  color: var(--raden);
+  color: #d5c9b6;
 }
 
 .side-b .side-name {
-  color: #d8cdbb;
+  color: var(--shiro);
 }
 
 /* 手番の印。手番でないときは場所だけ残して消す */
@@ -107,13 +107,15 @@
 }
 
 .side-a .stock-dot {
-  background: radial-gradient(circle at 32% 28%, #f2fffe, var(--raden) 42%, var(--raden-2));
-  box-shadow: 0 0 5px rgba(159, 216, 218, 0.35);
+  background: radial-gradient(circle at 32% 28%, #5d5348, var(--sumi) 55%);
+  box-shadow:
+    0 0 4px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 .side-b .stock-dot {
-  background: radial-gradient(circle at 32% 28%, #5d5348, var(--sumi) 55%);
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  background: radial-gradient(circle at 32% 28%, #ffffff, var(--shiro) 45%, var(--shiro-2));
+  box-shadow: 0 0 5px rgba(244, 239, 227, 0.3);
 }
 
 .stock-dot.is-spent {

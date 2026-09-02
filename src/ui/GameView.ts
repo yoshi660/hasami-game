@@ -1,121 +1,83 @@
 /**
- * 盤・表示・操作をつなぐ。
+ * 対局画面。盤に入力をつなぎ、操作ボタンを並べる。
  *
- * 選択中の駒はここが持つ。GameState には入れない（設計ルール3）。
- *
- * イベントと局面確定の2系統を、次のように使い分ける。
- *   onEvent       … 一度きりの演出を集める（打った駒、封じられた駒、挟みの線）
- *   onStateChange … 集めた演出を添えて描き直す
- * こうすると盤の差分を取らずに済み、演出の指定は CSS 側に残る（設計ルール6）。
- *
- * 待ったは GameEvent を流さないので、onStateChange だけで描き直される。
- * 駒は ID で追えるので、戻った局面へ CSS の transition がそのまま滑って戻る。
+ * 盤・手番表示・棋譜の描画は BoardStage が持つ。ここが持つのは
+ * 「選択中の駒」と入力の解釈だけ。選択は GameState に入れない（設計ルール3）。
  */
 
 import type { GameSession } from "../app/GameSession";
-import type { Unsubscribe } from "../app/GameClient";
-import type { GameEvent, GameState, Move, PieceId, Pos } from "../core/types";
-import { BoardView } from "./BoardView";
-import type { BoardDecor, FlankLine } from "./BoardView";
-import { RecordView } from "./RecordView";
+import type { GameState, Move, PieceId, Pos } from "../core/types";
+import { moveOf } from "../core/rules";
+import { BoardStage } from "./BoardStage";
+import type { BoardDecor } from "./BoardView";
+import type { RecordStore } from "./RecordStore";
 import type { Sound } from "./Sound";
-import { StatusView } from "./StatusView";
 import "./screens.css";
 
 const samePos = (a: Pos, b: Pos): boolean => a.x === b.x && a.y === b.y;
 
-interface PendingEffects {
-  droppedId: PieceId | null;
-  sealedIds: PieceId[];
-  flanks: FlankLine[];
-  /** 負けの原因になった塊。決着したときだけ入る */
-  verdictGroup: PieceId[];
-}
-
-const noEffects = (): PendingEffects => ({
-  droppedId: null,
-  sealedIds: [],
-  flanks: [],
-  verdictGroup: [],
-});
-
 export interface GameViewOptions {
   /** 対局をまたいで持ち回る音。 */
   readonly sound: Sound;
+  /** 棋譜の保存先。 */
+  readonly store: RecordStore;
   /** 同じ設定で始め直す。 */
   readonly onRematch: () => void;
-  /** 対局設定へ戻る。 */
+  /** 対局設定へ。 */
   readonly onSettings: () => void;
+  /** 最初の画面へ戻る。 */
+  readonly onHome: () => void;
 }
 
 export class GameView {
   readonly el: HTMLElement;
 
   #session: GameSession;
-  #board: BoardView;
-  #status: StatusView;
-  #record: RecordView;
-  #sound: Sound;
+  #stage: BoardStage;
+  #store: RecordStore;
   #undoButton: HTMLButtonElement;
-  #unsubscribes: Unsubscribe[] = [];
+  #saveButton: HTMLButtonElement;
 
   /** 選択中の駒。ui 側だけの状態。 */
   #selectedId: PieceId | null = null;
-  /** 直前に動いた駒。印を残すためだけに覚えておく。 */
-  #lastPieceId: PieceId | null = null;
-  /** 待ったで戻せるように、手ごとの「直前に動いた駒」を積んでおく。 */
-  #lastPieceIdHistory: (PieceId | null)[] = [];
-  /** 次の描画で流す演出。onEvent で集めて onStateChange で使う。 */
-  #effects: PendingEffects = noEffects();
+  /** 保存済みの手数。指し進めたり戻したりしたら、また保存できる。 */
+  #savedPlies: number | null = null;
 
   constructor(session: GameSession, options: GameViewOptions) {
     this.#session = session;
-    this.#sound = options.sound;
+    this.#store = options.store;
 
-    const config = session.state.config;
-    this.#board = new BoardView(config);
-    this.#status = new StatusView(config);
-    this.#record = new RecordView();
+    this.#stage = new BoardStage({
+      session,
+      sound: options.sound,
+      decor: (state, lastPieceId) => this.#decor(state, lastPieceId),
+      onRendered: () => this.#syncControls(),
+    });
 
-    const controls = document.createElement("div");
-    controls.className = "controls";
+    this.#stage.board.onCellSelect(this.#handleCell);
 
-    this.#undoButton = this.#button("待った", () => void this.#undo());
+    this.#undoButton = button("待った", () => void this.#undo());
     this.#undoButton.classList.add("btn-danger");
     this.#undoButton.hidden = !session.supportsUndo;
 
+    this.#saveButton = button("棋譜を保存", () => this.#save());
+    this.#saveButton.hidden = true;
+
+    const controls = document.createElement("div");
+    controls.className = "controls";
     controls.append(
       this.#undoButton,
-      this.#button("もう一局", options.onRematch),
-      this.#button("対局設定", options.onSettings),
+      this.#saveButton,
+      button("もう一局", options.onRematch),
+      button("対局設定", options.onSettings),
+      button("トップへ", options.onHome),
     );
 
     this.el = document.createElement("div");
     this.el.className = "screen play";
-    this.el.append(this.#board.el, this.#status.el, controls, this.#record.el);
+    this.el.append(this.#stage.board.el, this.#stage.status.el, controls, this.#stage.record.el);
 
-    this.#unsubscribes.push(
-      this.#board.onCellSelect(this.#handleCell),
-      session.onEvent(this.#handleEvent),
-      session.onStateChange(this.#handleStateChange),
-    );
-
-    this.#render(session.state);
-  }
-
-  /** 指せない操作を弾く。揺らして鳴らす。 */
-  #reject(): void {
-    this.#board.shake();
-    this.#sound.reject();
-  }
-
-  #button(label: string, onClick: () => void): HTMLButtonElement {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "btn";
-    button.textContent = label;
-    button.addEventListener("click", onClick);
-    return button;
+    this.#stage.render();
   }
 
   /* ---------------- 入力 ---------------- */
@@ -141,9 +103,9 @@ export class GameView {
         this.#selectedId = this.#selectedId === pieceId ? null : pieceId;
       } else {
         this.#selectedId = null;
-        this.#reject();
+        this.#stage.reject();
       }
-      this.#render(state);
+      this.#stage.render();
       return;
     }
 
@@ -156,11 +118,11 @@ export class GameView {
     // 4. 打てない空きマス。選択を解くか、打てるはずなのに打てないことを伝える
     if (this.#selectedId !== null) {
       this.#selectedId = null;
-      this.#render(state);
+      this.#stage.render();
       return;
     }
     if (session.sealedPieceIds().length === 0 && session.handCount(state.turn) > 0) {
-      this.#reject();
+      this.#stage.reject();
     }
   };
 
@@ -174,9 +136,8 @@ export class GameView {
 
     const result = await this.#session.submit(move);
     if (!result.accepted) {
-      // 盤に出していない手が弾かれた場合。描き直して知らせる
-      this.#reject();
-      this.#render(this.#session.state);
+      this.#stage.reject();
+      this.#stage.render();
     }
   }
 
@@ -185,72 +146,48 @@ export class GameView {
     this.#selectedId = null;
 
     // 描き直しは onStateChange の側で起きるので、その前に印を戻しておく
-    const previousLast = this.#lastPieceIdHistory.pop() ?? null;
-    this.#lastPieceId = previousLast;
+    const mark = this.#stage.rewindMark();
 
     const result = await this.#session.undo();
     if (result.undone) return;
 
-    // 戻せなかったので印も積み直す
-    this.#lastPieceIdHistory.push(previousLast);
-    this.#reject();
-    this.#render(this.#session.state);
+    this.#stage.restoreMark(mark);
+    this.#stage.reject();
+    this.#stage.render();
   }
 
-  /* ---------------- 対局からの通知 ---------------- */
+  /* ---------------- 棋譜の保存 ---------------- */
 
-  #handleEvent = (event: GameEvent): void => {
-    this.#sound.play(event);
+  #save(): void {
+    const record = this.#session.record;
+    if (record.length === 0) return;
 
-    switch (event.type) {
-      case "moved":
-        // 1手ぶんのイベントは必ず moved で始まる。ここで前の手の分を捨てる
-        this.#effects = noEffects();
-        this.#effects.droppedId = event.from === null ? event.pieceId : null;
-        this.#lastPieceIdHistory.push(this.#lastPieceId);
-        this.#lastPieceId = event.pieceId;
-        break;
+    this.#store.save({
+      config: this.#session.state.config,
+      moves: record.map(moveOf),
+      plies: record.length,
+      outcome: this.#session.state.outcome,
+    });
 
-      case "captured":
-        this.#effects.sealedIds.push(event.pieceId);
-        this.#effects.flanks.push({ from: event.flanks[0], to: event.flanks[1] });
-        break;
-
-      case "gameEnded":
-        this.#effects.verdictGroup = [...event.connectedGroup];
-        break;
-
-      case "turnChanged":
-        break;
-    }
-  };
-
-  #handleStateChange = (state: GameState): void => {
-    this.#selectedId = null;
-    this.#render(state);
-
-    this.#board.playEffects(this.#effects);
-
-    if (state.outcome === null) {
-      // 待ったで決着前に戻ったとき、幕を上げる
-      this.#board.clearVerdict();
-    } else {
-      this.#board.showVerdict(state.outcome, this.#effects.verdictGroup);
-    }
-
-    this.#effects = noEffects();
-  };
+    this.#savedPlies = record.length;
+    this.#syncControls();
+  }
 
   /* ---------------- 描画 ---------------- */
 
-  #render(state: GameState): void {
-    this.#board.render(state, this.#decor(state));
-    this.#status.render(state);
-    this.#record.render(this.#session.record);
-    this.#undoButton.disabled = !this.#session.canUndo;
+  #syncControls(): void {
+    const session = this.#session;
+    this.#undoButton.disabled = !session.canUndo;
+
+    // 決着してから出す。指し直したり戻したりしたら、また保存できる
+    const plies = session.record.length;
+    this.#saveButton.hidden = !session.isOver || plies === 0;
+    const saved = this.#savedPlies === plies;
+    this.#saveButton.disabled = saved;
+    this.#saveButton.textContent = saved ? "保存しました" : "棋譜を保存";
   }
 
-  #decor(state: GameState): BoardDecor {
+  #decor(state: GameState, lastPieceId: PieceId | null): BoardDecor {
     const session = this.#session;
 
     if (!session.canAct) {
@@ -259,7 +196,7 @@ export class GameView {
         destinations: [],
         placements: [],
         movableIds: [],
-        lastPieceId: this.#lastPieceId,
+        lastPieceId,
       };
     }
 
@@ -270,16 +207,21 @@ export class GameView {
       destinations: selected === null ? [] : session.legalMovesFrom(selected),
       placements: session.legalPlacements(),
       movableIds: session.movablePieceIds(),
-      lastPieceId: this.#lastPieceId,
+      lastPieceId,
     };
   }
 
   destroy(): void {
-    for (const unsubscribe of this.#unsubscribes) unsubscribe();
-    this.#unsubscribes = [];
-    this.#board.destroy();
-    this.#status.destroy();
-    this.#record.destroy();
+    this.#stage.destroy();
     this.el.remove();
   }
+}
+
+function button(label: string, onClick: () => void): HTMLButtonElement {
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = "btn";
+  el.textContent = label;
+  el.addEventListener("click", onClick);
+  return el;
 }

@@ -13,6 +13,10 @@ import { LocalClient } from "../app/LocalClient";
 import { DEFAULT_CONFIG } from "../core/rules";
 import type { BoardConfig } from "../core/types";
 import { GameView } from "./GameView";
+import { LibraryScreen } from "./LibraryScreen";
+import { RecordStore } from "./RecordStore";
+import type { SavedGame } from "./RecordStore";
+import { ReplayScreen } from "./ReplayScreen";
 import { RulesSheet } from "./RulesSheet";
 import { SettingsScreen } from "./SettingsScreen";
 import { Sound } from "./Sound";
@@ -34,6 +38,8 @@ export class App {
   #config: BoardConfig = DEFAULT_CONFIG;
   /** 対局をまたいで持ち回る。設定はブラウザに残る。 */
   #sound = new Sound();
+  /** 保存した棋譜の置き場。 */
+  #store = new RecordStore();
 
   #screen: Screen | null = null;
   #overlay: Screen | null = null;
@@ -93,6 +99,7 @@ export class App {
         config: this.#config,
         onPlay: () => this.#showSettings(),
         onRules: () => this.#openRules(),
+        onLibrary: () => this.#showLibrary(),
       }),
       false,
     );
@@ -123,8 +130,36 @@ export class App {
     this.#swap(
       new GameView(session, {
         sound: this.#sound,
+        store: this.#store,
         onRematch: () => this.#startGame(config),
         onSettings: () => this.#openSettings(),
+        onHome: () => this.#showStart(),
+      }),
+      true,
+    );
+  }
+
+  /* ---------------- 棋譜 ---------------- */
+
+  #showLibrary(): void {
+    this.#endGame();
+    this.#swap(
+      new LibraryScreen({
+        store: this.#store,
+        onPlay: (game) => this.#showReplay(game),
+        onBack: () => this.#showStart(),
+      }),
+      true,
+    );
+  }
+
+  #showReplay(game: SavedGame): void {
+    this.#endGame();
+    this.#swap(
+      new ReplayScreen({
+        game,
+        sound: this.#sound,
+        onBack: () => this.#showLibrary(),
       }),
       true,
     );

@@ -211,32 +211,24 @@
   border-radius: 50%;
 }
 
-/* 螺鈿。貝の虹色を conic で薄く重ねる */
+/* 先手は黒漆 */
 .p-A .disc {
-  background:
-    conic-gradient(
-      from 210deg at 62% 38%,
-      rgba(255, 214, 240, 0.5),
-      rgba(190, 255, 240, 0.45) 25%,
-      rgba(214, 230, 255, 0.5) 50%,
-      rgba(255, 236, 200, 0.45) 75%,
-      rgba(255, 214, 240, 0.5)
-    ),
-    radial-gradient(circle at 33% 26%, #ffffff 0%, #dff6f3 22%, var(--raden) 52%, var(--raden-2) 100%);
-  background-blend-mode: soft-light, normal;
-  box-shadow:
-    0 3px 7px rgba(60, 40, 20, 0.42),
-    inset 0 -3px 6px rgba(30, 90, 95, 0.4),
-    inset 0 2px 3px rgba(255, 255, 255, 0.85);
-}
-
-/* 黒漆 */
-.p-B .disc {
   background: radial-gradient(circle at 33% 26%, #726457 0%, #2e2721 30%, var(--sumi) 70%, #0b0907 100%);
   box-shadow:
     0 3px 8px rgba(30, 15, 8, 0.55),
     inset 0 -2px 6px rgba(0, 0, 0, 0.7),
     inset 0 2px 4px rgba(255, 255, 255, 0.18);
+}
+
+/* 後手は白。貝のような薄い艶を上に重ねる */
+.p-B .disc {
+  background:
+    radial-gradient(circle at 62% 72%, rgba(180, 160, 120, 0.22), transparent 55%),
+    radial-gradient(circle at 33% 26%, #ffffff 0%, #fbf7ec 26%, var(--shiro) 55%, var(--shiro-2) 100%);
+  box-shadow:
+    0 3px 7px rgba(60, 40, 20, 0.45),
+    inset 0 -3px 6px rgba(120, 105, 78, 0.35),
+    inset 0 2px 3px rgba(255, 255, 255, 0.9);
 }
 
 /* つまめる駒の細環 */

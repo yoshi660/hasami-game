@@ -23,7 +23,7 @@ export interface Pos {
  */
 export type PosKey = `${number},${number}`;
 
-/** A = 先手（螺鈿）、B = 後手（黒漆）。 */
+/** A = 先手（黒）、B = 後手（白）。 */
 export type Player = "A" | "B";
 
 /* ============================================================

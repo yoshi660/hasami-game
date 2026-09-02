@@ -10,6 +10,7 @@ export interface StartScreenOptions {
   readonly config: BoardConfig;
   readonly onPlay: () => void;
   readonly onRules: () => void;
+  readonly onLibrary: () => void;
 }
 
 export function configSummary(config: BoardConfig): string {
@@ -69,7 +70,14 @@ export class StartScreen {
     rules.className = "btn";
     rules.innerHTML = '<span class="btn-icon">?</span>ルール';
     rules.addEventListener("click", options.onRules);
-    row.append(rules);
+
+    const library = document.createElement("button");
+    library.type = "button";
+    library.className = "btn";
+    library.textContent = "棋譜";
+    library.addEventListener("click", options.onLibrary);
+
+    row.append(rules, library);
 
     this.el.append(top, wordmark, sub, banner, panel, row);
   }
