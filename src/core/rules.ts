@@ -30,6 +30,7 @@ import {
   turnStartOutcome,
 } from "./result";
 import type {
+  BoardConfig,
   GameEvent,
   GameState,
   Move,
@@ -43,6 +44,39 @@ import type {
   PosKey,
   Result,
 } from "./types";
+
+/* ============================================================
+ * 対局の開始
+ * ========================================================== */
+
+/** 既定の対局設定。盤の大きさ・移動距離・持ち駒の数は対局ごとに変えられる。 */
+export const DEFAULT_CONFIG: BoardConfig = {
+  cols: 7,
+  rows: 7,
+  moveRange: 1,
+  handSize: 8,
+  connectLimit: 4,
+};
+
+/**
+ * 開始局面。盤上に駒はなく、先手が持ち駒を打つところから始まる。
+ * 開始局面も千日手の数に入れる。
+ */
+export function createGame(config: BoardConfig = DEFAULT_CONFIG): GameState {
+  const state: GameState = {
+    config,
+    board: new Map(),
+    pieces: new Map(),
+    hands: { A: config.handSize, B: config.handSize },
+    turn: "A",
+    nextPieceId: 1,
+    ply: 0,
+    repetitions: new Map(),
+    outcome: null,
+  };
+
+  return { ...state, repetitions: new Map([[repetitionKey(state), 1]]) };
+}
 
 /* ============================================================
  * 局面の更新（すべて新しい GameState を返す）

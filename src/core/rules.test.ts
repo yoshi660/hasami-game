@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { applyMove, legalMoves, legalPlacements, movablePieceIds } from "./rules";
+import {
+  DEFAULT_CONFIG,
+  applyMove,
+  createGame,
+  legalMoves,
+  legalPlacements,
+  movablePieceIds,
+} from "./rules";
 import { repetitionKey } from "./result";
 import { errorOf, eventTypes, idAt, makeState, normalize, render, unwrap } from "./testing";
 import type { CapturedEvent, GameEndedEvent, MovedEvent, TurnChangedEvent } from "./types";
@@ -506,5 +513,53 @@ describe("applyMove: 参照透過", () => {
     expect(JSON.stringify(state.hands)).toBe(before.hands);
     expect(state.turn).toBe(before.turn);
     expect(state.ply).toBe(before.ply);
+  });
+});
+
+describe("createGame", () => {
+  it("既定は 7x7・移動1マス・持ち駒8個・連結上限4", () => {
+    expect(DEFAULT_CONFIG).toEqual({
+      cols: 7,
+      rows: 7,
+      moveRange: 1,
+      handSize: 8,
+      connectLimit: 4,
+    });
+  });
+
+  it("盤上に駒はなく、先手から始まる", () => {
+    const state = createGame();
+
+    expect(state.board.size).toBe(0);
+    expect(state.pieces.size).toBe(0);
+    expect(state.hands).toEqual({ A: 8, B: 8 });
+    expect(state.turn).toBe("A");
+    expect(state.ply).toBe(0);
+    expect(state.nextPieceId).toBe(1);
+    expect(state.outcome).toBeNull();
+  });
+
+  it("開始局面も千日手の数に入れる", () => {
+    const state = createGame();
+    expect(state.repetitions.get(repetitionKey(state))).toBe(1);
+  });
+
+  it("設定を渡せる", () => {
+    const state = createGame({ ...DEFAULT_CONFIG, cols: 5, rows: 5, handSize: 6 });
+
+    expect(state.config.cols).toBe(5);
+    expect(state.hands).toEqual({ A: 6, B: 6 });
+  });
+
+  it("開始局面ではどのマスにも打てる", () => {
+    expect(legalPlacements(createGame())).toHaveLength(49);
+  });
+
+  it("最初の1手を指せる", () => {
+    const { state } = unwrap(applyMove(createGame(), { kind: "place", to: { x: 3, y: 3 } }));
+
+    expect(state.turn).toBe("B");
+    expect(state.hands).toEqual({ A: 7, B: 8 });
+    expect(state.pieces.size).toBe(1);
   });
 });

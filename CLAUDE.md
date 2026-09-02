@@ -175,6 +175,37 @@ moved → captured* → turnChanged → (gameEnded)
 - 封じの**解除**は独立したイベントにせず、`moved` の `released` で伝える。
   封じは必ず移動によって解けるため
 
+## app 層の約束
+
+UI は `GameSession` だけを見る。core を直接 import しない。
+
+### 通知は2系統
+
+1手が確定すると、まず `onEvent` がイベントの数だけ描画順に呼ばれ、
+そのあと `onStateChange` が1回だけ呼ばれる。
+
+```
+onEvent(moved) → onEvent(captured)* → onEvent(turnChanged) → [onEvent(gameEnded)]
+  → onStateChange(確定した局面)
+```
+
+- `onEvent` は「何が起きたか」。演出のための系統
+- `onStateChange` は「局面が確定した」。描画を合わせるための系統
+
+1系統にまとめない。イベントだけでは最終局面を取りこぼしたときに復帰できず、
+局面だけでは何が起きたか復元できないため（設計ルール2と同じ理由）。
+
+### seats
+
+`GameClient.seats` は、そのクライアントが指せる側。
+ローカル対戦は `["A", "B"]`、オンラインは自分の側だけ、AI対戦は人間側だけ。
+UI の「自分の手番か」判定は `session.canAct` を見る。
+
+### 二重送信
+
+`GameSession.submit` は、前の着手が確定するまで次を `busy` で断る。
+通信が入ると往復に時間がかかるため、連打で二重に送らせない。
+
 ## 進め方
 
 - 指示された範囲だけを実装し、先回りして他のファイルを作らない
