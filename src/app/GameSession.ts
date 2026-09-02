@@ -18,6 +18,7 @@ import type {
   GameEventListener,
   StateListener,
   SubmitResult,
+  UndoResult,
   Unsubscribe,
 } from "./GameClient";
 
@@ -27,7 +28,7 @@ export class GameSession {
   #unsubscribeState: Unsubscribe;
   #eventListeners = new Set<GameEventListener>();
   #stateListeners = new Set<StateListener>();
-  #pending: Promise<SubmitResult> | null = null;
+  #pending: Promise<unknown> | null = null;
 
   constructor(client: GameClient) {
     this.#client = client;
@@ -118,6 +119,35 @@ export class GameSession {
     }
 
     const pending = this.#client.submitMove(move);
+    this.#pending = pending;
+
+    try {
+      return await pending;
+    } finally {
+      this.#pending = null;
+    }
+  }
+
+  /** 待ったのボタンを出すか。オンライン対戦では false。 */
+  get supportsUndo(): boolean {
+    return this.#client.supportsUndo;
+  }
+
+  /** いま待ったを押せるか。 */
+  get canUndo(): boolean {
+    return this.#client.canUndo && !this.isBusy;
+  }
+
+  /**
+   * 直前の1手を取り消す。決着したあとでも戻せる。
+   * 戻った局面は onStateChange で流れる。GameEvent は流れない。
+   */
+  async undo(): Promise<UndoResult> {
+    if (this.#pending !== null) {
+      return { undone: false, reason: { kind: "busy" } };
+    }
+
+    const pending = this.#client.undo();
     this.#pending = pending;
 
     try {

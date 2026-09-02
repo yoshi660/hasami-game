@@ -30,6 +30,19 @@ export type SubmitResult =
   | { readonly accepted: true }
   | { readonly accepted: false; readonly reason: SubmitError };
 
+/** 待ったが通らなかった理由。 */
+export type UndoError =
+  /** 戻せる手がない。 */
+  | { readonly kind: "noHistory" }
+  /** この対局では待ったを使えない。オンライン対戦など。 */
+  | { readonly kind: "unsupported" }
+  /** 前の着手がまだ確定していない。 */
+  | { readonly kind: "busy" };
+
+export type UndoResult =
+  | { readonly undone: true }
+  | { readonly undone: false; readonly reason: UndoError };
+
 /**
  * 対局の進行を担う相手。
  *
@@ -65,6 +78,23 @@ export interface GameClient {
    * 受け付けられた場合、解決する前に onEvent と onStateChange が呼ばれている。
    */
   submitMove(move: Move): Promise<SubmitResult>;
+
+  /**
+   * 待ったの機能があるか。ボタンを出すかどうかの判断に使う。
+   * オンライン対戦では false。
+   */
+  readonly supportsUndo: boolean;
+
+  /** いま待ったを押せるか。機能があっても、戻せる手がなければ false。 */
+  readonly canUndo: boolean;
+
+  /**
+   * 直前の1手を取り消す。決着したあとでも戻せる（負けた手を取り消すため）。
+   *
+   * GameEvent は流さない。何が起きたかではなく「局面が戻った」ことだけを
+   * onStateChange で伝える。UI は局面から描き直す。
+   */
+  undo(): Promise<UndoResult>;
 
   onEvent(listener: GameEventListener): Unsubscribe;
   onStateChange(listener: StateListener): Unsubscribe;

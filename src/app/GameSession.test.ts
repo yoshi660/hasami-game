@@ -5,7 +5,7 @@ import { idAt, makeState } from "../core/testing";
 import type { BoardConfig, GameState, Move, Player } from "../core/types";
 import { GameSession } from "./GameSession";
 import { LocalClient } from "./LocalClient";
-import type { GameClient, SubmitResult, Unsubscribe } from "./GameClient";
+import type { GameClient, SubmitResult, UndoResult, Unsubscribe } from "./GameClient";
 
 const SMALL: BoardConfig = { ...DEFAULT_CONFIG, cols: 5, rows: 5 };
 const PLACE: Move = { kind: "place", to: { x: 2, y: 2 } };
@@ -18,12 +18,18 @@ function localSession(options: { seats?: readonly Player[]; initialState?: GameS
 /** submitMove の解決をテスト側から握るクライアント。通信の遅延を模す。 */
 class ManualClient implements GameClient {
   readonly seats: readonly Player[] = ["A", "B"];
+  readonly supportsUndo = false;
+  readonly canUndo = false;
 
   #state: GameState = createGame(SMALL);
   #release: ((result: SubmitResult) => void) | null = null;
 
   getState(): GameState {
     return this.#state;
+  }
+
+  async undo(): Promise<UndoResult> {
+    return { undone: false, reason: { kind: "unsupported" } };
   }
 
   submitMove(): Promise<SubmitResult> {
@@ -241,5 +247,58 @@ describe("GameSession: 購読", () => {
     session.dispose();
 
     expect(await client.submitMove(PLACE)).toEqual({ accepted: true });
+  });
+});
+
+describe("GameSession: 待った", () => {
+  it("client の対応をそのまま見せる", async () => {
+    const { session } = localSession();
+
+    expect(session.supportsUndo).toBe(true);
+    expect(session.canUndo).toBe(false);
+
+    await session.submit(PLACE);
+    expect(session.canUndo).toBe(true);
+  });
+
+  it("1手戻す", async () => {
+    const { session } = localSession();
+    await session.submit(PLACE);
+
+    expect(await session.undo()).toEqual({ undone: true });
+    expect(session.turn).toBe("A");
+    expect(session.state.ply).toBe(0);
+  });
+
+  it("戻すと onStateChange だけが流れる", async () => {
+    const { session } = localSession();
+    await session.submit(PLACE);
+
+    const log: string[] = [];
+    session.onEvent((event) => log.push(`event:${event.type}`));
+    session.onStateChange((state) => log.push(`state:${state.ply}`));
+
+    await session.undo();
+
+    expect(log).toEqual(["state:0"]);
+  });
+
+  it("送信中は busy で断る", async () => {
+    const client = new ManualClient();
+    const session = new GameSession(client);
+
+    const first = session.submit(PLACE);
+
+    expect(await session.undo()).toEqual({ undone: false, reason: { kind: "busy" } });
+
+    client.release({ accepted: true });
+    await first;
+  });
+
+  it("待ったに対応しない client なら canUndo は false", () => {
+    const session = new GameSession(new ManualClient());
+
+    expect(session.supportsUndo).toBe(false);
+    expect(session.canUndo).toBe(false);
   });
 });

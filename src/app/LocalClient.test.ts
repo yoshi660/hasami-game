@@ -202,3 +202,115 @@ describe("LocalClient: dispose", () => {
     expect(onEvent).not.toHaveBeenCalled();
   });
 });
+
+describe("LocalClient: 待った", () => {
+  it("最初は戻せる手がない", () => {
+    const client = new LocalClient({ config: SMALL });
+
+    expect(client.supportsUndo).toBe(true);
+    expect(client.canUndo).toBe(false);
+  });
+
+  it("1手戻すと局面も持ち駒も戻る", async () => {
+    const client = new LocalClient({ config: SMALL });
+    const before = client.getState();
+
+    await client.submitMove(PLACE);
+    expect(client.canUndo).toBe(true);
+
+    expect(await client.undo()).toEqual({ undone: true });
+    expect(client.getState()).toBe(before);
+    expect(client.getState().turn).toBe("A");
+    expect(client.getState().hands).toEqual({ A: 8, B: 8 });
+    expect(client.canUndo).toBe(false);
+  });
+
+  it("何手でも最初まで戻せる", async () => {
+    const client = new LocalClient({ config: SMALL });
+    const before = client.getState();
+
+    await client.submitMove(PLACE);
+    await client.submitMove({ kind: "place", to: { x: 0, y: 0 } });
+    await client.submitMove({ kind: "place", to: { x: 4, y: 4 } });
+
+    await client.undo();
+    await client.undo();
+    await client.undo();
+
+    expect(client.getState()).toBe(before);
+    expect(client.canUndo).toBe(false);
+  });
+
+  it("戻せる手がなければ断る", async () => {
+    const client = new LocalClient({ config: SMALL });
+
+    expect(await client.undo()).toEqual({
+      undone: false,
+      reason: { kind: "noHistory" },
+    });
+  });
+
+  it("封じも一緒に戻る", async () => {
+    const initialState = makeState(`
+      . . . . .
+      . . . . .
+      A B . A .
+      . . . . .
+      . . . . .
+    `);
+    const client = new LocalClient({ initialState });
+    const sealedId = idAt(initialState, 1, 2);
+
+    await client.submitMove({
+      kind: "move",
+      pieceId: idAt(initialState, 3, 2),
+      to: { x: 2, y: 2 },
+    });
+    expect(client.getState().pieces.get(sealedId)!.sealed).toBe(true);
+
+    await client.undo();
+    expect(client.getState().pieces.get(sealedId)!.sealed).toBe(false);
+  });
+
+  it("決着したあとでも戻せる", async () => {
+    const initialState = makeState(`
+      B . A
+      A . .
+      . . .
+    `);
+    const client = new LocalClient({ initialState });
+
+    await client.submitMove({
+      kind: "move",
+      pieceId: idAt(initialState, 2, 0),
+      to: { x: 1, y: 0 },
+    });
+    expect(client.getState().outcome).not.toBeNull();
+
+    await client.undo();
+
+    expect(client.getState().outcome).toBeNull();
+    expect(await client.submitMove({ kind: "place", to: { x: 2, y: 2 } })).toEqual({
+      accepted: true,
+    });
+  });
+
+  it("GameEvent は流さず、局面確定だけを知らせる", async () => {
+    const client = new LocalClient({ config: SMALL });
+    await client.submitMove(PLACE);
+
+    const log = traced(client);
+    await client.undo();
+
+    expect(log).toEqual(["state:0"]);
+  });
+
+  it("断られた待ったでは何も流れない", async () => {
+    const client = new LocalClient({ config: SMALL });
+    const log = traced(client);
+
+    await client.undo();
+
+    expect(log).toEqual([]);
+  });
+});

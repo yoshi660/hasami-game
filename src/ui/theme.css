@@ -92,6 +92,47 @@ body {
   text-align: center;
 }
 
+.app {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.app-stage {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* 対局中の細い題字。スタート画面には大きな題字があるので出さない */
+.app-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+/* display を指定した要素は hidden 属性だけでは消えない */
+.app-head[hidden] {
+  display: none;
+}
+
+.app-head-mark {
+  font-family: var(--f-disp);
+  font-size: 22px;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  color: var(--kin-soft);
+}
+
+.app-head-sub {
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
 .play {
   width: 100%;
   display: flex;

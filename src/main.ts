@@ -3,12 +3,6 @@
  */
 
 import "./ui/theme.css";
-import { GameSession } from "./app/GameSession";
-import { LocalClient } from "./app/LocalClient";
-import { GameView } from "./ui/GameView";
+import { App } from "./ui/App";
 
-const client = new LocalClient();
-const session = new GameSession(client);
-const view = new GameView(session);
-
-document.querySelector<HTMLDivElement>("#app")!.append(view.el);
+document.querySelector<HTMLDivElement>("#app")!.append(new App().el);

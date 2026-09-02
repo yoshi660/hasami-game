@@ -12,6 +12,7 @@ import type {
   GameEventListener,
   StateListener,
   SubmitResult,
+  UndoResult,
   Unsubscribe,
 } from "./GameClient";
 
@@ -27,7 +28,11 @@ export interface LocalClientOptions {
 export class LocalClient implements GameClient {
   readonly seats: readonly Player[];
 
+  readonly supportsUndo = true;
+
   #state: GameState;
+  /** 待った用の履歴。着手のたびに、その手を指す前の局面を積む。 */
+  #history: GameState[] = [];
   #eventListeners = new Set<GameEventListener>();
   #stateListeners = new Set<StateListener>();
   #disposed = false;
@@ -35,6 +40,10 @@ export class LocalClient implements GameClient {
   constructor(options: LocalClientOptions = {}) {
     this.#state = options.initialState ?? createGame(options.config);
     this.seats = options.seats ?? ["A", "B"];
+  }
+
+  get canUndo(): boolean {
+    return !this.#disposed && this.#history.length > 0;
   }
 
   getState(): GameState {
@@ -55,10 +64,24 @@ export class LocalClient implements GameClient {
       return { accepted: false, reason: { kind: "illegal", error: result.error } };
     }
 
+    this.#history.push(this.#state);
     this.#state = result.state;
     this.#publish(result.events);
 
     return { accepted: true };
+  }
+
+  async undo(): Promise<UndoResult> {
+    if (this.#disposed) return { undone: false, reason: { kind: "unsupported" } };
+
+    const previous = this.#history.pop();
+    if (previous === undefined) return { undone: false, reason: { kind: "noHistory" } };
+
+    this.#state = previous;
+    // 戻った局面には「何が起きたか」がないので、イベントは流さない
+    for (const listener of [...this.#stateListeners]) listener(this.#state);
+
+    return { undone: true };
   }
 
   onEvent(listener: GameEventListener): Unsubscribe {
