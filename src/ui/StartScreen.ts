@@ -33,15 +33,11 @@ export class StartScreen {
 
     const wordmark = document.createElement("h1");
     wordmark.className = "start-wordmark";
-    wordmark.textContent = "挟";
+    wordmark.textContent = "挟将棋";
 
     const sub = document.createElement("p");
     sub.className = "start-sub";
     sub.textContent = "in a pinch";
-
-    const banner = document.createElement("p");
-    banner.className = "start-banner";
-    banner.innerHTML = "駒は取らない。<strong>挟んで封じ</strong>、相手の手を縛る。";
 
     const panel = document.createElement("div");
     panel.className = "start-panel";
@@ -79,7 +75,7 @@ export class StartScreen {
 
     row.append(rules, library);
 
-    this.el.append(top, wordmark, sub, banner, panel, row);
+    this.el.append(top, wordmark, sub, panel, row);
   }
 
   destroy(): void {

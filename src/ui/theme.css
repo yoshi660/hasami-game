@@ -111,8 +111,19 @@ body {
   text-align: center;
 }
 
+/* index.html の入れ物。ここが伸びないと、中の画面も縦に伸びない */
+#app {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .app {
   width: 100%;
+  /* 縦に伸ばしておく。中身の少ない画面を中ほどに置けるようにするため */
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -121,6 +132,7 @@ body {
 
 .app-stage {
   width: 100%;
+  flex: 1;
   display: flex;
   justify-content: center;
 }
@@ -147,9 +159,10 @@ body {
 
 .app-head-glyph {
   font-family: var(--f-disp);
-  font-size: 22px;
-  letter-spacing: 0.22em;
-  text-indent: 0.22em;
+  font-size: 19px;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+  white-space: nowrap;
   color: var(--kin-soft);
 }
 

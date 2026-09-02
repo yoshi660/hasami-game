@@ -149,13 +149,18 @@
 .start {
   width: min(560px, 100%);
   gap: 0;
+  /*
+   * 中身が少ないので画面の中ほどに置く。
+   * auto の余白は入りきらないとき 0 になるので、はみ出して届かなくなることがない。
+   */
+  margin-block: auto;
 }
 
 .start-top {
   width: 100%;
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 26px;
+  margin-bottom: 30px;
 }
 
 /* 現在の設定を出す札 */
@@ -172,10 +177,11 @@
 
 .start-wordmark {
   font-family: var(--f-disp);
-  font-size: clamp(72px, 22vw, 116px);
-  line-height: 1;
-  letter-spacing: 0.1em;
-  text-indent: 0.1em;
+  /* 3文字なので、1文字だったときより小さく取る */
+  font-size: clamp(46px, 15vw, 76px);
+  line-height: 1.15;
+  letter-spacing: 0.12em;
+  text-indent: 0.12em;
   color: var(--kin-soft);
   text-shadow:
     0 0 40px rgba(228, 199, 102, 0.28),
@@ -183,7 +189,7 @@
 }
 
 .start-sub {
-  margin-top: 10px;
+  margin-top: 12px;
   font-size: 11px;
   letter-spacing: 0.5em;
   text-indent: 0.5em;
@@ -191,29 +197,11 @@
   text-transform: uppercase;
 }
 
-/* ルールの一行。参考画像の帯の位置 */
-.start-banner {
-  width: 100%;
-  margin: 26px 0 30px;
-  padding: 13px 18px;
-  border-top: 1px solid rgba(201, 162, 39, 0.2);
-  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.3), rgba(201, 162, 39, 0.06), rgba(0, 0, 0, 0.3));
-  text-align: center;
-  font-size: 13px;
-  letter-spacing: 0.12em;
-  color: var(--ink-dim);
-}
-
-.start-banner strong {
-  color: var(--kin-soft);
-  font-weight: normal;
-}
-
 /* 主ボタンを載せる金の盤。四隅に鉤 */
 .start-panel {
   position: relative;
   width: 100%;
+  margin-top: 38px;
   padding: 22px;
   border: 1px solid rgba(201, 162, 39, 0.4);
   border-radius: 3px;

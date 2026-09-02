@@ -56,7 +56,7 @@ export class App {
     // 題字はスタート画面には大きなものがあるので、そこでは出さない
     this.#mark = document.createElement("div");
     this.#mark.className = "app-head-mark";
-    this.#mark.innerHTML = '<span class="app-head-glyph">挟</span><span class="app-head-sub">in a pinch</span>';
+    this.#mark.innerHTML = '<span class="app-head-glyph">挟将棋</span><span class="app-head-sub">in a pinch</span>';
 
     this.#soundButton = document.createElement("button");
     this.#soundButton.type = "button";
