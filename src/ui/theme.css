@@ -1,0 +1,111 @@
+/*
+ * 意匠のトークンとページの土台。
+ *
+ * 漆器の見立て。黒漆の盤面に和紙、駒は螺鈿（貝）と黒漆。差し色は金と朱。
+ * 色・時間・曲線をここに集めておき、演出の調整は CSS に閉じる（設計ルール6）。
+ */
+
+:root {
+  /* 漆 */
+  --urushi: #2a0e11;
+  --urushi-2: #3b171b;
+  --urushi-3: #4a2024;
+  --sumi: #17130f;
+
+  /* 和紙 */
+  --washi: #e9e0cb;
+  --washi-2: #dbd0b4;
+  --washi-line: #b9ab88;
+
+  /* 差し色 */
+  --kin: #c9a227;
+  --kin-soft: #e4c766;
+  --shu: #ce4a2e;
+  --shu-soft: #e8785c;
+
+  /* 駒 */
+  --raden: #b9e4e2;
+  --raden-2: #5fa9ae;
+
+  /* 文字 */
+  --ink: #efe7d5;
+  --ink-dim: #b5a489;
+  --ink-faint: #7e6e58;
+
+  --f-disp: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  --f-body: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+  --f-num: ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* 動き。駒の移動と演出はこの2つに揃える */
+  --ease-slide: cubic-bezier(0.22, 0.9, 0.28, 1);
+  --ease-pop: cubic-bezier(0.18, 1.5, 0.4, 1);
+  --t-slide: 0.34s;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  padding: 28px 16px 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+
+  background: radial-gradient(120% 90% at 50% -10%, var(--urushi-3) 0%, var(--urushi) 55%, #1e080a 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wordmark {
+  font-family: var(--f-disp);
+  font-size: 28px;
+  letter-spacing: 0.26em;
+  color: var(--kin-soft);
+  line-height: 1;
+  /* letter-spacing の分だけ右にずれるのを戻す */
+  text-indent: 0.26em;
+}
+
+.wordmark-sub {
+  margin-top: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.42em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.masthead {
+  text-align: center;
+}
+
+.play {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
