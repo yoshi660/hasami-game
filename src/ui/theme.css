@@ -56,18 +56,29 @@
   display: none !important;
 }
 
-html,
-body {
-  height: 100%;
-}
-
-/* body の背景は fixed なので、スクロール時の下地を html にも敷いておく */
+/* 地色は根に置く。ここが canvas になるので、どこまでスクロールしても途切れない */
 html {
   background: var(--urushi);
 }
 
+/*
+ * 画面いっぱいの地。
+ *
+ * body の背景にすると body の箱の高さまでしか塗られない。
+ * 内容がはみ出すと途中で切れて、下に別の面があるように見えてしまう。
+ * 画面に貼り付けた面を1枚敷いて、スクロールしても同じ地が続くようにする。
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 90% at 50% -10%, var(--urushi-3) 0%, var(--urushi) 55%, #1e080a 100%);
+}
+
 body {
-  min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   padding: 28px 16px 56px;
   padding-left: max(16px, env(safe-area-inset-left));
   padding-right: max(16px, env(safe-area-inset-right));
@@ -80,8 +91,6 @@ body {
   align-items: center;
   gap: 22px;
 
-  background: radial-gradient(120% 90% at 50% -10%, var(--urushi-3) 0%, var(--urushi) 55%, #1e080a 100%);
-  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--f-body);
   font-size: 15px;
