@@ -4,8 +4,22 @@
     {
       "name": "hasami-game",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "hasami-game-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "preview",
+        "--",
+        "--base=/hasami-game/"
+      ],
+      "port": 4173
     }
   ]
 }
