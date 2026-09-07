@@ -187,6 +187,10 @@ export class BoardView {
         el.style.transform = this.#translate(piece.pos);
       }
 
+      // 持ち主は対局中に変わらないが、作問では同じマスの駒種が変わる。
+      // 生成時に決め打ちにすると色が古いまま残るので、毎回そろえる
+      el.classList.toggle("p-A", piece.owner === "A");
+      el.classList.toggle("p-B", piece.owner === "B");
       el.classList.toggle("is-sealed", piece.sealed);
       el.classList.toggle("is-selected", piece.id === decor.selectedId);
       el.classList.toggle("is-movable", movable.has(piece.id));

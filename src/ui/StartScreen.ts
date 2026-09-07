@@ -11,6 +11,7 @@ export interface StartScreenOptions {
   readonly onPlay: () => void;
   readonly onRules: () => void;
   readonly onLibrary: () => void;
+  readonly onPuzzles: () => void;
 }
 
 export function configSummary(config: BoardConfig): string {
@@ -73,7 +74,13 @@ export class StartScreen {
     library.textContent = "棋譜";
     library.addEventListener("click", options.onLibrary);
 
-    row.append(rules, library);
+    const puzzles = document.createElement("button");
+    puzzles.type = "button";
+    puzzles.className = "btn";
+    puzzles.textContent = "詰めはさみ";
+    puzzles.addEventListener("click", options.onPuzzles);
+
+    row.append(puzzles, rules, library);
 
     this.el.append(top, wordmark, sub, panel, row);
   }

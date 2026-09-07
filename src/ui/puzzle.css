@@ -1,0 +1,132 @@
+/*
+ * 詰めはさみ。一覧と、解く画面の知らせ。
+ */
+
+/* ---------------- 一覧 ---------------- */
+
+/* screens.css の .screen より後に読まれても勝てるよう、2クラスで指定する */
+.screen.puzzle-list {
+  width: min(560px, 100%);
+  align-items: stretch;
+  padding: 26px 26px 22px;
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  border-radius: 4px;
+  background: linear-gradient(155deg, var(--urushi-3), #241012 70%);
+  box-shadow: 0 26px 60px -30px #000;
+}
+
+.puzzle-count {
+  margin-top: 14px;
+  font-family: var(--f-num);
+  font-size: 12px;
+  color: var(--kin-soft);
+  text-align: right;
+}
+
+.puzzle-grid {
+  list-style: none;
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.puzzle-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1px solid rgba(201, 162, 39, 0.28);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 0.18s,
+    background 0.18s;
+}
+
+@media (hover: hover) {
+  .puzzle-card:hover {
+    border-color: var(--kin);
+    background: rgba(201, 162, 39, 0.09);
+  }
+}
+
+.puzzle-card:active {
+  border-color: var(--kin);
+  background: rgba(201, 162, 39, 0.14);
+}
+
+.puzzle-card:focus-visible {
+  outline: 2px solid var(--kin-soft);
+  outline-offset: 2px;
+}
+
+.puzzle-card.is-solved {
+  border-color: rgba(201, 162, 39, 0.5);
+}
+
+.puzzle-plies {
+  font-family: var(--f-num);
+  font-size: 11.5px;
+  color: var(--kin-soft);
+}
+
+.puzzle-name {
+  min-width: 0;
+}
+
+.puzzle-mark {
+  font-size: 11px;
+  color: var(--kin);
+}
+
+/* ---------------- 解く画面 ---------------- */
+
+.puzzle-head {
+  width: min(560px, 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+}
+
+.puzzle-title {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+}
+
+.puzzle-left {
+  font-family: var(--f-num);
+  font-size: 13px;
+  color: var(--kin-soft);
+  white-space: nowrap;
+}
+
+/* 知らせ。何も言うことがないときは場所だけ残す */
+.puzzle-note {
+  width: min(560px, 100%);
+  min-height: 22px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+.puzzle-note.is-solved {
+  color: var(--kin-soft);
+}
+
+.puzzle-note.is-off {
+  color: var(--shu-soft);
+}

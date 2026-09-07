@@ -233,6 +233,26 @@ export function movablePieceIds(state: GameState, player: Player): readonly Piec
   return pool.filter((piece) => reachableCells(state, piece).length > 0).map((p) => p.id);
 }
 
+/**
+ * その局面で指せる手をすべて。打ちが先、動かす手が後。
+ *
+ * 並びは決まっているので、同じ局面なら毎回同じ順で返る（読みの再現性のため）。
+ */
+export function allLegalMoves(state: GameState): readonly Move[] {
+  if (state.outcome !== null) return [];
+
+  const moves: Move[] = [];
+
+  for (const to of legalPlacements(state)) moves.push({ kind: "place", to });
+
+  for (const pieceId of movablePieceIds(state, state.turn)) {
+    const piece = pieceById(state, pieceId)!;
+    for (const to of reachableCells(state, piece)) moves.push({ kind: "move", pieceId, to });
+  }
+
+  return moves;
+}
+
 /* ============================================================
  * 着手の適用
  * ========================================================== */

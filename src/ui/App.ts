@@ -11,11 +11,17 @@
 import { GameSession } from "../app/GameSession";
 import { LocalClient } from "../app/LocalClient";
 import { DEFAULT_CONFIG } from "../core/rules";
+import { PUZZLES } from "../core/puzzles";
+import type { Puzzle } from "../core/puzzles";
 import type { BoardConfig } from "../core/types";
+import { EditorScreen } from "./EditorScreen";
 import { GameView } from "./GameView";
 import { LibraryScreen } from "./LibraryScreen";
 import { RecordStore } from "./RecordStore";
 import type { SavedGame } from "./RecordStore";
+import { PuzzleListScreen } from "./PuzzleListScreen";
+import { PuzzleProgress } from "./PuzzleProgress";
+import { PuzzleScreen } from "./PuzzleScreen";
 import { ReplayScreen } from "./ReplayScreen";
 import { RulesSheet } from "./RulesSheet";
 import { SettingsScreen } from "./SettingsScreen";
@@ -26,6 +32,16 @@ import "./screens.css";
 interface Screen {
   readonly el: HTMLElement;
   destroy(): void;
+}
+
+/** ?editor か #editor が付いていたら作問の道具を開く。 */
+function wantsEditor(): boolean {
+  try {
+    if (new URLSearchParams(location.search).has("editor")) return true;
+    return location.hash.replace("#", "") === "editor";
+  } catch {
+    return false;
+  }
 }
 
 export class App {
@@ -40,6 +56,8 @@ export class App {
   #sound = new Sound();
   /** 保存した棋譜の置き場。 */
   #store = new RecordStore();
+  /** 解いた問題の記録。 */
+  #progress = new PuzzleProgress();
 
   #screen: Screen | null = null;
   #overlay: Screen | null = null;
@@ -73,7 +91,10 @@ export class App {
     this.#stage.className = "app-stage";
 
     this.el.append(this.#head, this.#stage);
-    this.#showStart();
+
+    // 作問の道具はどこからも繋がっていない。URL に ?editor を付けたときだけ出る
+    if (wantsEditor()) this.#showEditor();
+    else this.#showStart();
   }
 
   #syncSound(): void {
@@ -100,6 +121,7 @@ export class App {
         onPlay: () => this.#showSettings(),
         onRules: () => this.#openRules(),
         onLibrary: () => this.#showLibrary(),
+        onPuzzles: () => this.#showPuzzles(),
       }),
       false,
     );
@@ -160,6 +182,46 @@ export class App {
         game,
         sound: this.#sound,
         onBack: () => this.#showLibrary(),
+      }),
+      true,
+    );
+  }
+
+  /* ---------------- 作問 ---------------- */
+
+  #showEditor(): void {
+    this.#endGame();
+    this.#swap(new EditorScreen({ onBack: () => this.#showStart() }), true);
+  }
+
+  /* ---------------- 詰めはさみ ---------------- */
+
+  #showPuzzles(): void {
+    this.#endGame();
+    this.#swap(
+      new PuzzleListScreen({
+        progress: this.#progress,
+        onOpen: (puzzle) => this.#showPuzzle(puzzle),
+        onBack: () => this.#showStart(),
+      }),
+      true,
+    );
+  }
+
+  #showPuzzle(puzzle: Puzzle): void {
+    this.#endGame();
+
+    const index = PUZZLES.findIndex((item) => item.id === puzzle.id);
+    const next = index >= 0 ? (PUZZLES[index + 1] ?? null) : null;
+
+    this.#swap(
+      new PuzzleScreen({
+        puzzle,
+        sound: this.#sound,
+        progress: this.#progress,
+        next,
+        onOpen: (target) => this.#showPuzzle(target),
+        onBack: () => this.#showPuzzles(),
       }),
       true,
     );
