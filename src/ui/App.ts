@@ -259,6 +259,7 @@ export class App {
     this.#swap(
       new PuzzleScreen({
         puzzle,
+        number: index + 1,
         sound: this.#sound,
         progress: this.#progress,
         next,

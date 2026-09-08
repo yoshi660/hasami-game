@@ -52,7 +52,6 @@ export class EditorScreen {
   #board: BoardView | null = null;
   #report: HTMLElement;
   #output: HTMLTextAreaElement;
-  #titleInput: HTMLInputElement;
   #idInput: HTMLInputElement;
 
   constructor(options: EditorScreenOptions) {
@@ -79,8 +78,7 @@ export class EditorScreen {
     this.#output.readOnly = true;
     this.#output.spellcheck = false;
 
-    this.#idInput = textField("id", "kabe-1");
-    this.#titleInput = textField("題名", "壁に押し付ける");
+    this.#idInput = textField("id", "tsume-1");
 
     this.el.append(title, lede, this.#fields(), this.#boardHolder, this.#actions(options), this.#report, this.#output);
 
@@ -114,7 +112,7 @@ export class EditorScreen {
 
     const names = document.createElement("div");
     names.className = "editor-names";
-    names.append(this.#idInput.parentElement!, this.#titleInput.parentElement!);
+    names.append(this.#idInput.parentElement!);
     wrap.append(names);
 
     return wrap;
@@ -260,7 +258,6 @@ export class EditorScreen {
     }
 
     options.onAdd({
-      title: this.#titleInput.value.trim() || "名無しの問題",
       plies: this.#plies,
       rows: toDiagram(state),
       turn: this.#turn,
@@ -304,12 +301,10 @@ export class EditorScreen {
       .join(", ");
 
     const id = this.#idInput.value.trim() || "id-here";
-    const title = this.#titleInput.value.trim() || "題名";
 
     this.#output.value = [
       "  {",
       `    id: "${id}",`,
-      `    title: "${title}",`,
       `    plies: ${this.#plies},`,
       `    rows: [${rows}],`,
       `    turn: "${this.#turn}",`,

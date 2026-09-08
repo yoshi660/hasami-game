@@ -36,7 +36,8 @@ describe("PuzzleClient", () => {
     expect(client.canUndo).toBe(false);
   });
 
-  it("正解を指し続けると解ける", async () => {
+  // 全問を読み直すので、既定の 5 秒では足りない
+  it("正解を指し続けると解ける", { timeout: 120_000 }, async () => {
     for (const puzzle of PUZZLES) {
       const client = clientFor(puzzle);
 

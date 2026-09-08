@@ -36,10 +36,6 @@ export class PuzzleListScreen {
     title.className = "sheet-title";
     title.textContent = `${options.plies}手詰`;
 
-    const lede = document.createElement("p");
-    lede.className = "sheet-lede";
-    lede.textContent = "相手がどう受けても、この手数で詰ませる";
-
     this.#count = document.createElement("p");
     this.#count.className = "puzzle-count";
 
@@ -55,7 +51,7 @@ export class PuzzleListScreen {
     back.addEventListener("click", options.onBack);
     foot.append(back);
 
-    this.el.append(title, lede, this.#count, this.#list, foot);
+    this.el.append(title, this.#count, this.#list, foot);
     this.render(options.puzzles);
   }
 
@@ -64,10 +60,10 @@ export class PuzzleListScreen {
     this.#count.textContent = `${solved} / ${puzzles.length} 問`;
 
     this.#list.replaceChildren();
-    for (const puzzle of puzzles) this.#list.append(this.#card(puzzle));
+    puzzles.forEach((puzzle, index) => this.#list.append(this.#card(puzzle, index + 1)));
   }
 
-  #card(puzzle: Puzzle): HTMLElement {
+  #card(puzzle: Puzzle, number: number): HTMLElement {
     const item = document.createElement("li");
     item.className = "puzzle-item";
 
@@ -76,19 +72,19 @@ export class PuzzleListScreen {
     button.className = "puzzle-card";
     if (this.#options.progress.isSolved(puzzle.id)) button.classList.add("is-solved");
 
+    const label = document.createElement("span");
+    label.className = "puzzle-number";
+    label.textContent = `第${number}問`;
+
     const size = document.createElement("span");
     size.className = "puzzle-plies";
     size.textContent = `${puzzle.rows[0].replace(/\s+/g, "").length}路`;
-
-    const name = document.createElement("span");
-    name.className = "puzzle-name";
-    name.textContent = puzzle.title;
 
     const mark = document.createElement("span");
     mark.className = "puzzle-mark";
     mark.textContent = this.#options.progress.isSolved(puzzle.id) ? "済" : "";
 
-    button.append(size, name, mark);
+    button.append(label, size, mark);
     button.addEventListener("click", () => this.#options.onOpen(puzzle));
     item.append(button);
 
@@ -99,7 +95,7 @@ export class PuzzleListScreen {
       remove.type = "button";
       remove.className = "btn btn-danger puzzle-remove";
       remove.textContent = "消す";
-      remove.setAttribute("aria-label", `${puzzle.title} を消す`);
+      remove.setAttribute("aria-label", `第${number}問 を消す`);
       remove.addEventListener("click", () => this.#options.onDelete(puzzle));
       item.append(remove);
     }

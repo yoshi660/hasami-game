@@ -22,6 +22,8 @@ const samePos = (a: Pos, b: Pos): boolean => a.x === b.x && a.y === b.y;
 
 export interface PuzzleScreenOptions {
   readonly puzzle: Puzzle;
+  /** その手数の中で何問目か。1から数える。 */
+  readonly number: number;
   readonly sound: Sound;
   readonly progress: PuzzleProgress;
   /** 次の問題。最後の問題なら null。 */
@@ -67,7 +69,7 @@ export class PuzzleScreen {
     head.className = "puzzle-head";
     const title = document.createElement("p");
     title.className = "puzzle-title";
-    title.textContent = `${options.puzzle.title} · ${options.puzzle.plies}手詰`;
+    title.textContent = `第${options.number}問 · ${options.puzzle.plies}手詰`;
     this.#left = document.createElement("p");
     this.#left.className = "puzzle-left";
     head.append(title, this.#left);

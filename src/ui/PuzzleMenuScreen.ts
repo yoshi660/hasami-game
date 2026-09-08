@@ -8,13 +8,7 @@ import "./puzzle.css";
 import "./screens.css";
 
 /** 出題する手数。少ない順。 */
-export const PUZZLE_PLIES: readonly number[] = [1, 3, 5];
-
-const NOTE: Record<number, string> = {
-  1: "1手で詰ませる。挟みの形を覚える",
-  3: "相手の受けを1回はさんで詰ませる",
-  5: "受けを2回はさむ。読みが要る",
-};
+export const PUZZLE_PLIES: readonly number[] = [1, 3, 5, 7];
 
 export interface PuzzleMenuScreenOptions {
   readonly puzzles: readonly Puzzle[];
@@ -34,10 +28,6 @@ export class PuzzleMenuScreen {
     title.className = "sheet-title";
     title.textContent = "詰めはさみ";
 
-    const lede = document.createElement("p");
-    lede.className = "sheet-lede";
-    lede.textContent = "相手がどう受けても、決まった手数で詰ませる";
-
     const list = document.createElement("ul");
     list.className = "menu-list";
 
@@ -54,7 +44,7 @@ export class PuzzleMenuScreen {
     back.addEventListener("click", options.onBack);
     foot.append(back);
 
-    this.el.append(title, lede, list, foot);
+    this.el.append(title, list, foot);
   }
 
   #row(plies: number, options: PuzzleMenuScreenOptions): HTMLElement {
@@ -73,15 +63,11 @@ export class PuzzleMenuScreen {
     head.className = "menu-plies";
     head.textContent = `${plies}手詰`;
 
-    const note = document.createElement("span");
-    note.className = "menu-note";
-    note.textContent = NOTE[plies] ?? "";
-
     const count = document.createElement("span");
     count.className = "menu-count";
     count.textContent = `${solved} / ${group.length}`;
 
-    button.append(head, note, count);
+    button.append(head, count);
     button.addEventListener("click", () => options.onSelect(plies));
 
     item.append(button);

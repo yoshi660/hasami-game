@@ -27,7 +27,6 @@ function isPuzzle(value: unknown): value is Puzzle {
 
   return (
     typeof puzzle.id === "string" &&
-    typeof puzzle.title === "string" &&
     typeof puzzle.plies === "number" &&
     typeof puzzle.moveRange === "number" &&
     (puzzle.turn === "A" || puzzle.turn === "B") &&

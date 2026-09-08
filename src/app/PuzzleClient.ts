@@ -8,7 +8,7 @@
  * 局面・履歴・イベントの配り方は対局と同じ経路を通る。
  */
 
-import { canForceWin, solutionLine } from "../core/solve";
+import { proveForcedWin, solutionLine } from "../core/solve";
 import { opponent } from "../core/board";
 import { puzzleState } from "../core/puzzles";
 import type { Puzzle } from "../core/puzzles";
@@ -44,6 +44,15 @@ const REPLY_NODE_LIMIT = 120_000;
  * 深く読んでも選び方はほとんど変わらないので、盤が大きいときに固まらない深さで切る。
  */
 const REPLY_MAX_PLIES = 3;
+
+/**
+ * 詰み筋の上にいるかを読むときの節点の上限。
+ *
+ * 7手詰めは奥が深いので、上限に当たることがある。当たったときは
+ * 「詰まない」ではなく「分からない」が返るので、外れた印は出さない。
+ * 正しく解いている人に「この手順では詰みません」と言ってしまう方が困る。
+ */
+const STATUS_NODE_LIMIT = 300_000;
 
 export type PuzzleStatus =
   /** 詰み筋の上にいる。 */
@@ -114,8 +123,12 @@ export class PuzzleClient implements GameClient {
       return won ? "solved" : "failed";
     }
 
-    // 残りの手数で詰ませ切れるかを見る
-    return canForceWin(state, this.pliesLeft, this.#attacker) ? "playing" : "offTrack";
+    // 残りの手数で詰ませ切れるかを見る。
+    // 読み切れなかった（"unknown"）ときは、詰み筋の上にいるものとして扱う
+    const proof = proveForcedWin(state, this.pliesLeft, this.#attacker, {
+      nodeLimit: STATUS_NODE_LIMIT,
+    });
+    return proof === "no" ? "offTrack" : "playing";
   }
 
   get canUndo(): boolean {

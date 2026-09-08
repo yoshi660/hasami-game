@@ -31,7 +31,18 @@ export interface Solution {
 
 interface Budget {
   left: number;
+  /** 上限に達して読むのをやめたか。答えが「勝てない」のとき、その真偽を左右する。 */
+  exhausted: boolean;
 }
+
+/**
+ * 読みの結果。
+ *
+ * "no" と "unknown" を分けるのが要点。上限に達して打ち切っただけなのに
+ * 「詰まない」と言うと、正しい手を指した人に「その手順では詰みません」と
+ * 言ってしまう。分からないときは分からないと答える。
+ */
+export type Proof = "win" | "no" | "unknown";
 
 /**
  * その局面から attacker が plies 手以内に必ず勝てるか。
@@ -48,7 +59,10 @@ function winsWithin(
     return state.outcome.kind === "win" && state.outcome.winner === attacker;
   }
   if (plies <= 0) return false;
-  if (budget.left <= 0) return false;
+  if (budget.left <= 0) {
+    budget.exhausted = true;
+    return false;
+  }
 
   const moves = allLegalMoves(state);
   // 決着していないなら必ず指せる手がある。念のため
@@ -87,7 +101,29 @@ export function canForceWin(
   attacker: Player,
   options: SolveOptions = {},
 ): boolean {
-  return winsWithin(state, plies, attacker, { left: options.nodeLimit ?? DEFAULT_NODE_LIMIT });
+  return proveForcedWin(state, plies, attacker, options) === "win";
+}
+
+/**
+ * その局面から attacker が plies 手以内に必ず勝てるかを、
+ 「勝てる」「勝てない」「読み切れなかった」の3つで答える。
+ *
+ * 勝ちを見つけたときは証明できているので "win" は必ず正しい。
+ * 見つからなかった場合だけ、上限に達したかどうかで "no" と "unknown" を分ける。
+ */
+export function proveForcedWin(
+  state: GameState,
+  plies: number,
+  attacker: Player,
+  options: SolveOptions = {},
+): Proof {
+  const budget: Budget = {
+    left: options.nodeLimit ?? DEFAULT_NODE_LIMIT,
+    exhausted: false,
+  };
+
+  if (winsWithin(state, plies, attacker, budget)) return "win";
+  return budget.exhausted ? "unknown" : "no";
 }
 
 /**
@@ -102,7 +138,7 @@ export function findForcedWin(
   if (state.outcome !== null) return null;
 
   const attacker = state.turn;
-  const budget: Budget = { left: options.nodeLimit ?? DEFAULT_NODE_LIMIT };
+  const budget: Budget = { left: options.nodeLimit ?? DEFAULT_NODE_LIMIT, exhausted: false };
 
   // 手数を1手ずつ伸ばして、いちばん短い詰みを見つける
   for (let plies = 1; plies <= maxPlies; plies += 2) {
@@ -220,7 +256,7 @@ export function bestDefence(
   const moves = allLegalMoves(state);
   if (moves.length === 0) return null;
 
-  const budget: Budget = { left: options.nodeLimit ?? DEFAULT_NODE_LIMIT };
+  const budget: Budget = { left: options.nodeLimit ?? DEFAULT_NODE_LIMIT, exhausted: false };
 
   let best: Move | null = null;
   let bestScore = -1;
