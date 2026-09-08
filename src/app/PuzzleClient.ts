@@ -26,6 +26,24 @@ import { LocalClient } from "./LocalClient";
 /** 攻め方の手を見せてから受け方が指すまでの間。CSS の移動時間より少し長く取る。 */
 const REPLY_DELAY_MS = 480;
 
+/**
+ * 受け方の読みに使う節点の上限。
+ *
+ * 受け方は最善でなくてよい。詰み筋の上にいるかの判定は status が別に読むので、
+ * ここが控えめでも正誤は狂わない。盤が大きいと読みが伸びて画面が固まるため、
+ * 待ち時間に見合う範囲で切る。
+ */
+const REPLY_NODE_LIMIT = 120_000;
+
+/**
+ * 受け方が先まで読む深さの上限。
+ *
+ * 問題が成り立っている以上、受け方はどう指しても負ける。読みの深さは
+ * 「すぐ詰む手」と「もう少し粘れる手」を分けるためだけに要る。
+ * 深く読んでも選び方はほとんど変わらないので、盤が大きいときに固まらない深さで切る。
+ */
+const REPLY_MAX_PLIES = 3;
+
 export type PuzzleStatus =
   /** 詰み筋の上にいる。 */
   | "playing"
@@ -54,6 +72,11 @@ export class PuzzleClient implements GameClient {
   #defender: Player;
   #inner: LocalClient;
   #replyDelayMs: number;
+  /**
+   * status は読むたびに詰みを読み直すので重い。
+   * 局面は指すたびに新しい物になるので、同じ物なら前の答えを返す。
+   */
+  #statusCache: { state: GameState; status: PuzzleStatus } | null = null;
 
   constructor(options: PuzzleClientOptions) {
     this.puzzle = options.puzzle;
@@ -77,13 +100,20 @@ export class PuzzleClient implements GameClient {
 
   get status(): PuzzleStatus {
     const state = this.getState();
+    if (this.#statusCache?.state === state) return this.#statusCache.status;
 
+    const status = this.#readStatus(state);
+    this.#statusCache = { state, status };
+    return status;
+  }
+
+  #readStatus(state: GameState): PuzzleStatus {
     if (state.outcome !== null) {
       const won = state.outcome.kind === "win" && state.outcome.winner === this.#attacker;
       return won ? "solved" : "failed";
     }
 
-    // 受け方の番なら、残りの手数で詰ませ切れるかを見る
+    // 残りの手数で詰ませ切れるかを見る
     return canForceWin(state, this.pliesLeft, this.#attacker) ? "playing" : "offTrack";
   }
 
@@ -115,11 +145,17 @@ export class PuzzleClient implements GameClient {
     if (state.outcome !== null) return;
     if (state.turn !== this.#defender) return;
 
-    // 詰みまでの残りより少し広く読ませる。攻め方が外した局面でも受け方が迷わないように
-    const reply = bestDefence(state, this.#attacker, this.pliesLeft + 2);
+    // 先に待つ。読んでから待つと、攻め方の手が描かれる前に固まってしまう
+    await sleep(this.#replyDelayMs);
+
+    const reply = bestDefence(
+      state,
+      this.#attacker,
+      Math.min(this.pliesLeft, REPLY_MAX_PLIES),
+      { nodeLimit: REPLY_NODE_LIMIT },
+    );
     if (reply === null) return;
 
-    await sleep(this.#replyDelayMs);
     await this.#inner.submitMove(reply);
   }
 
