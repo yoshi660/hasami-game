@@ -130,3 +130,130 @@
 .puzzle-note.is-off {
   color: var(--shu-soft);
 }
+
+/* ---------------- 手数を選ぶ ---------------- */
+
+/* screens.css の .screen より後に読まれても勝てるよう、2クラスで指定する */
+.screen.puzzle-menu {
+  width: min(560px, 100%);
+  align-items: stretch;
+  padding: 26px 26px 22px;
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  border-radius: 4px;
+  background: linear-gradient(155deg, var(--urushi-3), #241012 70%);
+  box-shadow: 0 26px 60px -30px #000;
+}
+
+.menu-list {
+  list-style: none;
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 16px;
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--ink);
+  font-family: var(--f-body);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 0.18s,
+    background 0.18s;
+}
+
+@media (hover: hover) {
+  .menu-card:hover:not(:disabled) {
+    border-color: var(--kin);
+    background: rgba(201, 162, 39, 0.09);
+  }
+}
+
+.menu-card:active:not(:disabled) {
+  border-color: var(--kin);
+  background: rgba(201, 162, 39, 0.14);
+}
+
+.menu-card:focus-visible {
+  outline: 2px solid var(--kin-soft);
+  outline-offset: 2px;
+}
+
+.menu-card:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 全部解いた組は縁を明るくする */
+.menu-card.is-done {
+  border-color: rgba(201, 162, 39, 0.65);
+}
+
+.menu-plies {
+  font-family: var(--f-disp);
+  font-size: 19px;
+  letter-spacing: 0.1em;
+  color: var(--kin-soft);
+  white-space: nowrap;
+}
+
+.menu-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.menu-count {
+  font-family: var(--f-num);
+  font-size: 13px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+
+/* ---------------- 一覧の下書き ---------------- */
+
+.puzzle-item {
+  display: flex;
+  gap: 6px;
+}
+
+.puzzle-item .puzzle-card {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 自分で足した問題は縁を変えて見分ける */
+.puzzle-card.is-draft {
+  border-style: dashed;
+}
+
+.puzzle-remove {
+  flex: none;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  min-height: 0;
+}
+
+/* ---------------- 正解 ---------------- */
+
+.puzzle-answer {
+  width: min(560px, 100%);
+  padding: 10px 12px;
+  border-left: 2px solid var(--kin);
+  background: rgba(201, 162, 39, 0.1);
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--kin-soft);
+  overflow-wrap: anywhere;
+}

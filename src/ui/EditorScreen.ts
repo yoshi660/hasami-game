@@ -14,9 +14,10 @@
  */
 
 import { parseDiagram, toDiagram } from "../core/diagram";
-import { cellName } from "../core/notation";
+import { describeMove } from "../core/notation";
 import { allLegalMoves, applyMove } from "../core/rules";
 import { canForceWin, findForcedWin } from "../core/solve";
+import type { Puzzle } from "../core/puzzles";
 import type { GameState, Move, Player, Pos } from "../core/types";
 import { BoardView } from "./BoardView";
 import "./editor.css";
@@ -28,7 +29,12 @@ const CYCLE = [".", "A", "B", "a", "b"] as const;
 /** 読む手数の上限。これを超える問題は重くなるので作らせない。 */
 const MAX_PLIES = 7;
 
+/** 選べる詰み手数。攻め方が指して終わるので奇数だけ。 */
+const PLIES_CHOICES = [1, 3, 5, 7] as const;
+
 export interface EditorScreenOptions {
+  /** その場で一覧に足す。ソースを触らずに試せる。 */
+  readonly onAdd: (puzzle: Omit<Puzzle, "id">) => void;
   readonly onBack: () => void;
 }
 
@@ -39,6 +45,8 @@ export class EditorScreen {
   #size = 5;
   #turn: Player = "A";
   #moveRange = 1;
+  /** 何手詰めとして作るか。読みの答え合わせもこの数で行う。 */
+  #plies = 3;
 
   #boardHolder: HTMLElement;
   #board: BoardView | null = null;
@@ -91,6 +99,10 @@ export class EditorScreen {
         this.#moveRange = value;
         this.#render();
       }),
+      segment("詰み手数", [...PLIES_CHOICES], () => this.#plies, (value) => {
+        this.#plies = value;
+        this.#say("", false);
+      }),
       choice("攻め方", [
         ["A", "先手 黒"],
         ["B", "後手 白"],
@@ -114,6 +126,7 @@ export class EditorScreen {
 
     row.append(
       button("読む", () => this.#solve()),
+      button("この問題を追加", () => this.#add(options)),
       button("書き出す", () => this.#emit()),
       button("写す", () => void this.#copy()),
       button("すべて消す", () => this.#resize(this.#size)),
@@ -194,24 +207,68 @@ export class EditorScreen {
       return;
     }
 
+    const check = this.#check(state);
+    this.#say(check.message, !check.ok);
+  }
+
+  /** 選んだ手数の問題として成り立っているか。 */
+  #check(state: GameState): { ok: boolean; message: string } {
     const found = findForcedWin(state, MAX_PLIES);
     if (found === null) {
-      this.#say(`${MAX_PLIES}手以内の詰みは見つかりません`, true);
-      return;
+      return { ok: false, message: `${MAX_PLIES}手以内の詰みは見つかりません` };
+    }
+
+    if (found.plies !== this.#plies) {
+      return {
+        ok: false,
+        message:
+          `${this.#plies}手詰にしていますが、この局面は ${found.plies}手詰です。` +
+          "手数を変えるか、局面を作り直してください。",
+      };
     }
 
     const answers = this.#firstMoves(state, found.plies);
-    const first = describe(state, found.first);
+    const first = describeMove(state, found.first);
 
-    if (answers.length === 1) {
-      this.#say(`ちょうど ${found.plies}手詰。答えは1通り（${first}）。問題にできます。`, false);
-    } else {
-      this.#say(
-        `${found.plies}手詰ですが、最初の一手が ${answers.length} 通りあります（例 ${first}）。` +
+    if (answers.length !== 1) {
+      return {
+        ok: false,
+        message:
+          `${found.plies}手詰ですが、最初の一手が ${answers.length} 通りあります（例 ${first}）。` +
           "答えが定まらないので、駒を足すか動かしてください。",
-        true,
-      );
+      };
     }
+
+    return {
+      ok: true,
+      message: `ちょうど ${found.plies}手詰。答えは1通り（${first}）。問題にできます。`,
+    };
+  }
+
+  /** 一覧に足す。成り立っていない局面は足さない。 */
+  #add(options: EditorScreenOptions): void {
+    const state = this.#state();
+    if (state === null) {
+      this.#say("盤が読めません", true);
+      return;
+    }
+
+    const check = this.#check(state);
+    if (!check.ok) {
+      this.#say(check.message, true);
+      return;
+    }
+
+    options.onAdd({
+      title: this.#titleInput.value.trim() || "名無しの問題",
+      plies: this.#plies,
+      rows: toDiagram(state),
+      turn: this.#turn,
+      hands: { A: 0, B: 0 },
+      moveRange: this.#moveRange,
+    });
+
+    this.#say("一覧に足しました。詰めはさみから遊べます。この端末にだけ残ります。", false);
   }
 
   /** ちょうど plies 手で詰ませられる最初の一手。 */
@@ -242,8 +299,6 @@ export class EditorScreen {
       return;
     }
 
-    const found = findForcedWin(state, MAX_PLIES);
-    const plies = found?.plies ?? 0;
     const rows = toDiagram(state)
       .map((row) => `"${row}"`)
       .join(", ");
@@ -255,7 +310,7 @@ export class EditorScreen {
       "  {",
       `    id: "${id}",`,
       `    title: "${title}",`,
-      `    plies: ${plies},`,
+      `    plies: ${this.#plies},`,
       `    rows: [${rows}],`,
       `    turn: "${this.#turn}",`,
       "    hands: NO_HANDS,",
@@ -263,11 +318,12 @@ export class EditorScreen {
       "  },",
     ].join("\n");
 
-    if (found === null) {
-      this.#say("詰みが見つからないので plies が 0 のままです。直してから貼ってください。", true);
-    } else {
-      this.#say("src/core/puzzles.ts の PUZZLES に貼って、npm test を通してください。", false);
+    const check = this.#check(state);
+    if (!check.ok) {
+      this.#say(check.message, true);
+      return;
     }
+    this.#say("src/core/puzzles.ts の PUZZLES に貼って、npm test を通してください。", false);
   }
 
   async #copy(): Promise<void> {
@@ -372,9 +428,4 @@ function choice<T extends string | number>(
   return field;
 }
 
-function describe(state: GameState, move: Move): string {
-  if (move.kind === "place") return `打 ${cellName(move.to)}`;
-  const piece = state.pieces.get(move.pieceId);
-  const from = piece === undefined ? "" : cellName(piece.pos);
-  return `${from}→${cellName(move.to)}`;
-}
+

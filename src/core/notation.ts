@@ -5,7 +5,7 @@
  * ここを直せば両方が揃う。
  */
 
-import type { MoveRecord, Outcome, Player, Pos } from "./types";
+import type { GameState, Move, MoveRecord, Outcome, Player, Pos } from "./types";
 
 /** 先手・後手の印。 */
 export const SIDE_MARK: Record<Player, string> = { A: "▲", B: "△" };
@@ -42,6 +42,17 @@ export function noteText(record: MoveRecord): string {
   if (record.sealed.length > 0) notes.push(`封じ${record.sealed.length}`);
   if (record.selfSealed) notes.push("自封");
   return notes.join(" ");
+}
+
+/**
+ * 着手を読める文にする。局面がないと動かす駒の場所が分からないので一緒に受け取る。
+ * 棋譜の1手（MoveRecord）を書くときは moveText を使う。
+ */
+export function describeMove(state: GameState, move: Move): string {
+  if (move.kind === "place") return `打 ${cellName(move.to)}`;
+  const piece = state.pieces.get(move.pieceId);
+  const from = piece === undefined ? "" : cellName(piece.pos);
+  return `${from}→${cellName(move.to)}`;
 }
 
 /** 決着の理由。 */

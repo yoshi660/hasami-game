@@ -8,11 +8,12 @@
  * 局面・履歴・イベントの配り方は対局と同じ経路を通る。
  */
 
-import { canForceWin, bestDefence } from "../core/solve";
+import { canForceWin, solutionLine } from "../core/solve";
 import { opponent } from "../core/board";
 import { puzzleState } from "../core/puzzles";
 import type { Puzzle } from "../core/puzzles";
 import type { GameState, Move, Player } from "../core/types";
+import { bestDefence } from "../core/solve";
 import type {
   GameClient,
   GameEventListener,
@@ -119,6 +120,19 @@ export class PuzzleClient implements GameClient {
 
   get canUndo(): boolean {
     return this.#inner.canUndo;
+  }
+
+  /**
+   * いまの局面からの正解手順。攻め方と受け方の手が交互に並ぶ。
+   *
+   * 受け方の読みは実際に指すときと同じ深さにする。揃えないと、
+   * 出した手順の通りに指しても違う応手が返ってくる。
+   */
+  solution(): readonly Move[] {
+    return solutionLine(this.getState(), this.pliesLeft, {
+      defenceMaxPlies: REPLY_MAX_PLIES,
+      defenceNodeLimit: REPLY_NODE_LIMIT,
+    });
   }
 
   /**

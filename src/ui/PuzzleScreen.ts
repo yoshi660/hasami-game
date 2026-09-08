@@ -9,7 +9,7 @@ import { GameSession } from "../app/GameSession";
 import { PuzzleClient } from "../app/PuzzleClient";
 import { cellName } from "../core/notation";
 import type { Puzzle } from "../core/puzzles";
-import { findForcedWin } from "../core/solve";
+import { describeLine, findForcedWin } from "../core/solve";
 import type { GameState, Move, PieceId, Pos } from "../core/types";
 import { BoardStage } from "./BoardStage";
 import type { BoardDecor } from "./BoardView";
@@ -39,9 +39,11 @@ export class PuzzleScreen {
   #stage: BoardStage;
 
   #note: HTMLElement;
+  #answer: HTMLElement;
   #left: HTMLElement;
   #undoButton: HTMLButtonElement;
   #hintButton: HTMLButtonElement;
+  #answerButton: HTMLButtonElement;
   #nextButton: HTMLButtonElement;
 
   /** 選択中の駒。ui 側だけの状態。 */
@@ -73,9 +75,14 @@ export class PuzzleScreen {
     this.#note = document.createElement("p");
     this.#note.className = "puzzle-note";
 
+    this.#answer = document.createElement("p");
+    this.#answer.className = "puzzle-answer";
+    this.#answer.hidden = true;
+
     this.#undoButton = button("待った", () => void this.#undo());
     this.#undoButton.classList.add("btn-danger");
     this.#hintButton = button("ヒント", () => this.#hint());
+    this.#answerButton = button("正解", () => this.#showAnswer());
     this.#nextButton = button("次の問題", () => {
       if (options.next !== null) options.onOpen(options.next);
     });
@@ -87,13 +94,21 @@ export class PuzzleScreen {
       this.#undoButton,
       button("最初から", () => this.#restart()),
       this.#hintButton,
+      this.#answerButton,
       this.#nextButton,
       button("一覧へ", options.onBack),
     );
 
     this.el = document.createElement("div");
     this.el.className = "screen play";
-    this.el.append(head, this.#stage.board.el, this.#note, controls, this.#stage.record.el);
+    this.el.append(
+      head,
+      this.#stage.board.el,
+      this.#note,
+      this.#answer,
+      controls,
+      this.#stage.record.el,
+    );
 
     this.#stage.render();
   }
@@ -138,6 +153,7 @@ export class PuzzleScreen {
 
   async #submit(move: Move): Promise<void> {
     this.#selectedId = null;
+    this.#hideAnswer();
 
     const result = await this.#session.submit(move);
     if (!result.accepted) {
@@ -154,6 +170,7 @@ export class PuzzleScreen {
 
   async #undo(): Promise<void> {
     this.#selectedId = null;
+    this.#hideAnswer();
     const mark = this.#stage.rewindMark();
 
     const result = await this.#session.undo();
@@ -170,6 +187,27 @@ export class PuzzleScreen {
 
   #restart(): void {
     this.#options.onOpen(this.#options.puzzle);
+  }
+
+  /**
+   * いまの局面からの正解手順を出す。
+   * 受け方の読みは実際に指すときと同じなので、この通りに指せばこの通りに進む。
+   */
+  #showAnswer(): void {
+    const line = this.#client.solution();
+    this.#answer.hidden = false;
+
+    if (line.length === 0) {
+      this.#answer.textContent = "この局面から詰ませる手順はありません。待ったで戻してください。";
+      return;
+    }
+
+    this.#answer.textContent = `正解  ${describeLine(this.#session.state, line)}`;
+  }
+
+  #hideAnswer(): void {
+    this.#answer.hidden = true;
+    this.#answer.textContent = "";
   }
 
   #hint(): void {
@@ -197,8 +235,10 @@ export class PuzzleScreen {
     const left = this.#client.pliesLeft;
 
     this.#left.textContent = status === "solved" ? "" : `あと ${left} 手`;
+    const over = status === "solved" || status === "failed";
     this.#undoButton.disabled = !this.#session.canUndo;
-    this.#hintButton.disabled = status === "solved" || status === "failed";
+    this.#hintButton.disabled = over;
+    this.#answerButton.disabled = over;
 
     this.#note.className = "puzzle-note";
     switch (status) {

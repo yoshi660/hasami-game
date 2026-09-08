@@ -55,6 +55,42 @@ export const PUZZLES: readonly Puzzle[] = [
     hands: NO_HANDS,
     moveRange: 1,
   },
+  {
+    id: "hidarishita-1",
+    title: "左下をふさぐ",
+    plies: 1,
+    rows: ["B..A.", "BA...", "....A", ".....", ".A.B."],
+    turn: "A",
+    hands: NO_HANDS,
+    moveRange: 1,
+  },
+  {
+    id: "futatsu-1",
+    title: "二つで挟む",
+    plies: 1,
+    rows: [".B...", ".....", "AA...", "....A", "BB..."],
+    turn: "A",
+    hands: NO_HANDS,
+    moveRange: 1,
+  },
+  {
+    id: "obankado-1",
+    title: "大盤の角",
+    plies: 1,
+    rows: ["BB.....", ".A.....", "...A...", ".......", "A......", ".......", "......."],
+    turn: "A",
+    hands: NO_HANDS,
+    moveRange: 1,
+  },
+  {
+    id: "obanue-1",
+    title: "大盤の上辺",
+    plies: 1,
+    rows: [".....BB", "..A..A.", ".......", "...A...", ".......", ".......", "......."],
+    turn: "A",
+    hands: NO_HANDS,
+    moveRange: 1,
+  },
 
   /* ---------------- 3手 ---------------- */
   {

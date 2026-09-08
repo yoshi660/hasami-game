@@ -11,6 +11,7 @@
  */
 
 import { allLegalMoves, applyMove } from "./rules";
+import { SIDE_MARK, describeMove } from "./notation";
 import type { GameState, Move, Player } from "./types";
 
 /** 既定の読みの上限。5手詰めがふつうに解ける程度。 */
@@ -131,6 +132,77 @@ export function isExactMate(
 ): boolean {
   const found = findForcedWin(state, plies, options);
   return found !== null && found.plies === plies;
+}
+
+export interface LineOptions {
+  /** 攻め方の読みの上限。 */
+  readonly nodeLimit?: number;
+  /** 受け方が先まで読む深さ。対局側と揃えると、出した通りに進む。 */
+  readonly defenceMaxPlies?: number;
+  /** 受け方の読みの上限。 */
+  readonly defenceNodeLimit?: number;
+}
+
+/**
+ * 詰みまでの手順。攻め方の手と受け方の応手が交互に並ぶ。
+ *
+ * 受け方の読みの深さは対局側と揃えられる。揃えないと、
+ * 出した手順と実際に進む手順が食い違う。
+ *
+ * 詰みが見つからなければ空。
+ */
+export function solutionLine(
+  state: GameState,
+  maxPlies: number,
+  options: LineOptions = {},
+): readonly Move[] {
+  const attacker = state.turn;
+  const attack = { nodeLimit: options.nodeLimit };
+  const defend = { nodeLimit: options.defenceNodeLimit ?? options.nodeLimit };
+
+  const line: Move[] = [];
+  let current = state;
+  let left = maxPlies;
+
+  while (left > 0) {
+    const found = findForcedWin(current, left, attack);
+    if (found === null) break;
+
+    const attacked = applyMove(current, found.first);
+    if ("error" in attacked) break;
+    line.push(found.first);
+    current = attacked.state;
+    left--;
+    if (current.outcome !== null) break;
+
+    const depth = Math.min(left, options.defenceMaxPlies ?? left);
+    const reply = bestDefence(current, attacker, depth, defend);
+    if (reply === null) break;
+
+    const defended = applyMove(current, reply);
+    if ("error" in defended) break;
+    line.push(reply);
+    current = defended.state;
+    left--;
+    if (current.outcome !== null) break;
+  }
+
+  return line;
+}
+
+/** 手順を「▲C2→B2 △E1→E2」の形にする。 */
+export function describeLine(state: GameState, line: readonly Move[]): string {
+  const parts: string[] = [];
+  let current = state;
+
+  for (const move of line) {
+    parts.push(`${SIDE_MARK[current.turn]}${describeMove(current, move)}`);
+    const applied = applyMove(current, move);
+    if ("error" in applied) break;
+    current = applied.state;
+  }
+
+  return parts.join("  ");
 }
 
 /**

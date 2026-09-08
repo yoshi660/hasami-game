@@ -19,7 +19,9 @@ import { GameView } from "./GameView";
 import { LibraryScreen } from "./LibraryScreen";
 import { RecordStore } from "./RecordStore";
 import type { SavedGame } from "./RecordStore";
+import { PuzzleDraftStore } from "./PuzzleDraftStore";
 import { PuzzleListScreen } from "./PuzzleListScreen";
+import { PuzzleMenuScreen } from "./PuzzleMenuScreen";
 import { PuzzleProgress } from "./PuzzleProgress";
 import { PuzzleScreen } from "./PuzzleScreen";
 import { ReplayScreen } from "./ReplayScreen";
@@ -58,6 +60,8 @@ export class App {
   #store = new RecordStore();
   /** 解いた問題の記録。 */
   #progress = new PuzzleProgress();
+  /** 作問の画面から足した問題。この端末にだけ残る。 */
+  #drafts = new PuzzleDraftStore();
 
   #screen: Screen | null = null;
   #overlay: Screen | null = null;
@@ -191,28 +195,66 @@ export class App {
 
   #showEditor(): void {
     this.#endGame();
-    this.#swap(new EditorScreen({ onBack: () => this.#showStart() }), true);
-  }
-
-  /* ---------------- 詰めはさみ ---------------- */
-
-  #showPuzzles(): void {
-    this.#endGame();
     this.#swap(
-      new PuzzleListScreen({
-        progress: this.#progress,
-        onOpen: (puzzle) => this.#showPuzzle(puzzle),
+      new EditorScreen({
+        onAdd: (puzzle) => this.#drafts.add(puzzle),
         onBack: () => this.#showStart(),
       }),
       true,
     );
   }
 
+  /* ---------------- 詰めはさみ ---------------- */
+
+  /** 組み込みの問題と、作問の画面から足した問題。 */
+  #allPuzzles(): readonly Puzzle[] {
+    return [...PUZZLES, ...this.#drafts.list()];
+  }
+
+  #groupOf(plies: number): readonly Puzzle[] {
+    return this.#allPuzzles().filter((puzzle) => puzzle.plies === plies);
+  }
+
+  /** 手数を選ぶ画面。 */
+  #showPuzzles(): void {
+    this.#endGame();
+    this.#swap(
+      new PuzzleMenuScreen({
+        puzzles: this.#allPuzzles(),
+        progress: this.#progress,
+        onSelect: (plies) => this.#showPuzzleList(plies),
+        onBack: () => this.#showStart(),
+      }),
+      true,
+    );
+  }
+
+  /** その手数の問題一覧。 */
+  #showPuzzleList(plies: number): void {
+    this.#endGame();
+
+    const screen = new PuzzleListScreen({
+      plies,
+      puzzles: this.#groupOf(plies),
+      progress: this.#progress,
+      onOpen: (puzzle) => this.#showPuzzle(puzzle),
+      onDelete: (puzzle) => {
+        this.#drafts.remove(puzzle.id);
+        screen.render(this.#groupOf(plies));
+      },
+      onBack: () => this.#showPuzzles(),
+    });
+
+    this.#swap(screen, true);
+  }
+
   #showPuzzle(puzzle: Puzzle): void {
     this.#endGame();
 
-    const index = PUZZLES.findIndex((item) => item.id === puzzle.id);
-    const next = index >= 0 ? (PUZZLES[index + 1] ?? null) : null;
+    // 次の問題は同じ手数の中から選ぶ
+    const group = this.#groupOf(puzzle.plies);
+    const index = group.findIndex((item) => item.id === puzzle.id);
+    const next = index >= 0 ? (group[index + 1] ?? null) : null;
 
     this.#swap(
       new PuzzleScreen({
@@ -221,7 +263,7 @@ export class App {
         progress: this.#progress,
         next,
         onOpen: (target) => this.#showPuzzle(target),
-        onBack: () => this.#showPuzzles(),
+        onBack: () => this.#showPuzzleList(puzzle.plies),
       }),
       true,
     );
